@@ -188,86 +188,66 @@ showPage('home');
 
 function showPage(page){
 
-if(page=="home"){
+    if (!window.currentUser) {
+        showLogin();
+        return;
+    }
 
-content.innerHTML=`
-<h2>🏠 الصفحة الرئيسية</h2>
-<div id="postsContainer"></div>
-`;
+    if(page=="home"){
 
-loadPosts();
+        content.innerHTML=`
+        <h2>🏠 الصفحة الرئيسية</h2>
+        <div id="postsContainer"></div>
+        `;
 
-}
+        loadPosts();
 
-else if(page=="search"){
+    }
 
-showSearch();
+    else if(page=="search"){
 
-}
+        showSearch();
 
-else if(page=="post"){
+    }
 
-content.innerHTML=`
+    else if(page=="post"){
 
-<h2>➕ إنشاء منشور</h2>
+        content.innerHTML=`
 
-<input id="title" placeholder="عنوان المنشور">
+        <h2>➕ إنشاء منشور</h2>
 
-<textarea id="postText" placeholder="بماذا تفكر؟"></textarea>
+        <input id="title" placeholder="عنوان المنشور">
 
-<input type="file" id="postImage" accept="image/*">
+        <textarea id="postText" placeholder="بماذا تفكر؟"></textarea>
 
-<button class="mainButton" onclick="publishPost()">
+        <input type="file" id="postImage" accept="image/*">
 
-نشر المنشور
+        <button class="mainButton" onclick="publishPost()">
+        نشر المنشور
+        </button>
 
-</button>
+        `;
 
-`;
+    }
 
-}
+    else if(page=="messages"){
 
-else if(page=="messages"){
+        showMessages();
 
-showMessages();
+    }
 
-}
+    else if(page=="profile"){
 
-else if(page=="profile"){
-
-content.innerHTML=`
-
-<div class="post" style="text-align:center;">
-
-<h2>👤 الملف الشخصي</h2>
-
-<img
-src="${userImage || 'https://via.placeholder.com/120'}"
-style="width:120px;height:120px;border-radius:50%;margin:15px 0;">
-
-<input type="file" id="newProfileImage" accept="image/*">
-
-<h3>${userName}</h3>
-
-<p>${userBio}</p>
-
-<hr>
-
-<button class="mainButton" onclick="editProfile()">
-
-✏️ تعديل الملف الشخصي
-
-</button>
-
-</div>
-
-`;
-
-}
-
+        content.innerHTML=`
+        ...
+        `;
+    }
 }
 function publishPost() {
-
+if (!localStorage.getItem("userName")) {
+    alert("يجب تسجيل الدخول أولاً");
+    return;
+}
 let title = document.getElementById("title").value;
 let text = document.getElementById("postText").value;
 
@@ -395,6 +375,22 @@ localStorage.setItem("userBio",userBio);
 
 showPage("profile");
 
+}
+function sharePost(button) {
+  const post = button.closest(".post");
+  const title = post.querySelector("h4").innerText;
+  const text = post.querySelector("p").innerText;
+
+  if (navigator.share) {
+    navigator.share({
+      title: title,
+      text: text,
+      url: window.location.href
+    });
+  } else {
+    navigator.clipboard.writeText(window.location.href);
+    alert("تم نسخ رابط التطبيق، يمكنك إرساله.");
+  }
 }
 window.showPage = showPage;
 

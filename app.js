@@ -33,9 +33,32 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
+import {
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
+onAuthStateChanged(auth, (user) => {
+window.currentUser = user;
+  if (user) {
+
+    if (window.showPage) {
+      window.showPage("home");
+    }
+
+  } else {
+window.currentUser = null;
+    if (typeof showLogin === "function") {
+      showLogin();
+    }
+
+  }
+
+});
 async function savePost(title, text) {
-
+if (!auth.currentUser) {
+    alert("يجب تسجيل الدخول أولاً");
+    return;
+}
   try {
 
     await addDoc(collection(db, "posts"), {
@@ -134,7 +157,7 @@ async function loadPosts(){
 
           <button onclick="showComment(this)">💬 تعليق</button>
 
-          <button>↗ مشاركة</button>
+          <button onclick="sharePost(this)">↗ مشاركة</button>
 
         </div>
 
