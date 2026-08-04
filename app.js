@@ -175,7 +175,13 @@ export async function login(email, password) {
       password
     );
 
+    window.currentUser = userCredential.user;
+
     alert("تم تسجيل الدخول");
+
+    if (window.showPage) {
+      window.showPage("home");
+    }
 
     return userCredential.user;
 
@@ -188,7 +194,6 @@ export async function login(email, password) {
   }
 
 }
-
 export async function logout() {
 
   await signOut(auth);
