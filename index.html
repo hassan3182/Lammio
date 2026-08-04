@@ -8,7 +8,7 @@
     :root {
       --lammio-primary: #3b82f6;
       --lammio-bg: linear-gradient(135deg, #e0e7ff 0%, #f3e8ff 100%);
-      --lammio-glass: rgba(255, 255, 255, 0.65);
+      --lammio-glass: rgba(255, 255, 255, 0.75);
       --lammio-glass-border: rgba(255, 255, 255, 0.8);
       --lammio-text: #1f2937;
     }
@@ -23,7 +23,6 @@
       min-height: 100vh;
     }
 
-    /* الشريط العلوي الشفاف */
     header {
       background: rgba(255, 255, 255, 0.7);
       backdrop-filter: blur(10px);
@@ -44,7 +43,6 @@
       color: var(--lammio-primary);
     }
 
-    /* شريط الأيقونات العلوي الثاني */
     .top-sub-nav {
       background: rgba(255, 255, 255, 0.5);
       backdrop-filter: blur(8px);
@@ -65,37 +63,39 @@
     }
 
     .main-container {
-      max-width: 600px;
-      margin: 15px auto;
+      max-width: 500px;
+      margin: 30px auto;
       padding: 0 12px;
     }
 
-    /* كروت المنشورات الزجاجية */
-    .post {
+    /* كروت التصميم الزجاجي */
+    .post, .auth-card {
       background: var(--lammio-glass);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
       border: 1px solid var(--lammio-glass-border);
-      border-radius: 16px;
-      padding: 16px;
+      border-radius: 20px;
+      padding: 24px;
       margin-bottom: 16px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
+      text-align: center;
     }
 
     input, textarea {
       width: 100%;
-      padding: 10px;
-      margin: 6px 0 12px 0;
-      border: 1px solid rgba(255, 255, 255, 0.8);
-      background: rgba(255, 255, 255, 0.5);
-      border-radius: 10px;
+      padding: 12px;
+      margin: 8px 0 14px 0;
+      border: 1px solid rgba(255, 255, 255, 0.9);
+      background: rgba(255, 255, 255, 0.6);
+      border-radius: 12px;
       box-sizing: border-box;
       font-family: inherit;
       outline: none;
+      font-size: 14px;
     }
 
     input:focus, textarea:focus {
-      background: rgba(255, 255, 255, 0.9);
+      background: rgba(255, 255, 255, 0.95);
       border-color: var(--lammio-primary);
     }
 
@@ -105,14 +105,28 @@
       border: none;
       padding: 12px;
       width: 100%;
-      border-radius: 10px;
+      border-radius: 12px;
       font-weight: bold;
       cursor: pointer;
       font-size: 15px;
-      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+      box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+      margin-top: 6px;
     }
 
-    /* الشريط السفلي الشفاف */
+    .secondaryButton {
+      background: #10b981;
+      color: white;
+      border: none;
+      padding: 12px;
+      width: 100%;
+      border-radius: 12px;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 15px;
+      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+      margin-top: 10px;
+    }
+
     nav {
       position: fixed;
       bottom: 0;
@@ -151,36 +165,126 @@
 </head>
 <body>
 
-  <header>
-    <div class="logo">Lammio</div>
-    <div>
-      <button onclick="logout()" style="background:none; border:none; cursor:pointer; font-weight:bold; color:#e11d48;">🚪 خروج</button>
-    </div>
-  </header>
-
-  <!-- الشريط الفرعي العلوي الأنيق -->
-  <div class="top-sub-nav">
-    <button onclick="showPage('home')">🏠</button>
-    <button onclick="showPage('friends')">👥</button>
-    <button onclick="showPage('notifications')">🔔</button>
-    <button onclick="showPage('menu')">☰</button>
-  </div>
+  <div id="headerContainer"></div>
 
   <div class="main-container" id="appContent">
     <!-- المحتوى الديناميكي -->
   </div>
 
-  <!-- الشريط السفلي -->
-  <nav>
-    <button onclick="showPage('home')">🏠</button>
-    <button onclick="showPage('post')">➕</button>
-    <button onclick="showPage('friends')">👥</button>
-  </nav>
+  <div id="navContainer"></div>
 
   <script type="module" src="./app.js"></script>
 
   <script>
+    // التحقق من حالة تسجيل الدخول وعرض الصفحات بناءً عليها
+    function checkAuthAndShow() {
+      const isLoggedIn = sessionStorage.getItem("loggedIn") === "true";
+      const headerContainer = document.getElementById("headerContainer");
+      const navContainer = document.getElementById("navContainer");
+
+      if (!isLoggedIn) {
+        if (headerContainer) headerContainer.innerHTML = "";
+        if (navContainer) navContainer.innerHTML = "";
+        showLoginScreen();
+      } else {
+        if (headerContainer) {
+          headerContainer.innerHTML = `
+            <header>
+              <div class="logo">Lammio</div>
+              <div>
+                <button onclick="logoutApp()" style="background:none; border:none; cursor:pointer; font-weight:bold; color:#e11d48; font-size:14px;">🚪 خروج</button>
+              </div>
+            </header>
+            <div class="top-sub-nav">
+              <button onclick="showPage('home')">🏠</button>
+              <button onclick="showPage('friends')">👥</button>
+              <button onclick="showPage('notifications')">🔔</button>
+              <button onclick="showPage('menu')">☰</button>
+            </div>
+          `;
+        }
+        if (navContainer) {
+          navContainer.innerHTML = `
+            <nav>
+              <button onclick="showPage('home')">🏠</button>
+              <button onclick="showPage('post')">➕</button>
+              <button onclick="showPage('friends')">👥</button>
+            </nav>
+          `;
+        }
+        showPage("home");
+      }
+    }
+
+    function showLoginScreen() {
+      let content = document.getElementById("appContent");
+      if (!content) return;
+      content.innerHTML = `
+        <div class="auth-card">
+          <h2 style="color: var(--lammio-primary); margin-bottom: 4px; font-size: 28px;">Lammio</h2>
+          <p style="color: #4b5563; margin-bottom: 20px; font-size: 14px;">تسجيل الدخول إلى حسابك</p>
+          
+          <input type="email" id="authEmail" placeholder="البريد الإلكتروني">
+          <input type="password" id="authPassword" placeholder="كلمة السر">
+          
+          <button class="mainButton" onclick="handleLogin()">تسجيل الدخول</button>
+          <button class="secondaryButton" onclick="handleRegister()">إنشاء حساب جديد</button>
+          
+          <div style="margin-top: 15px;">
+            <a href="#" onclick="handleForgotPassword(event)" style="color: #2563eb; font-size: 13px; text-decoration: none;">نسيت كلمة السر؟</a>
+          </div>
+        </div>
+      `;
+    }
+
+    async function handleLogin() {
+      const email = document.getElementById("authEmail").value;
+      const password = document.getElementById("authPassword").value;
+      if (!email || !password) {
+        alert("يرجى إدخال البريد الإلكتروني وكلمة السر.");
+        return;
+      }
+      if (window.login) {
+        await window.login(email, password);
+        checkAuthAndShow();
+      }
+    }
+
+    async function handleRegister() {
+      const email = document.getElementById("authEmail").value;
+      const password = document.getElementById("authPassword").value;
+      if (!email || !password) {
+        alert("يرجى إدخال البريد الإلكتروني وكلمة السر للتسجيل.");
+        return;
+      }
+      if (window.register) {
+        await window.register(email, password);
+        checkAuthAndShow();
+      }
+    }
+
+    async function handleForgotPassword(e) {
+      e.preventDefault();
+      const email = document.getElementById("authEmail").value;
+      if (!email) {
+        alert("يرجى كتابة بريدك الإلكتروني في حقل البريد الإلكتروني أولاً ثم اضغط على نسيت كلمة السر.");
+        return;
+      }
+      if (window.resetPassword) {
+        await window.resetPassword(email);
+      }
+    }
+
+    function logoutApp() {
+      if (window.logout) {
+        window.logout();
+      }
+      sessionStorage.removeItem("loggedIn");
+      checkAuthAndShow();
+    }
+
     function showPage(page) {
+      if (sessionStorage.getItem("loggedIn") !== "true") return;
       let content = document.getElementById("appContent");
       if (!content) return;
 
@@ -221,26 +325,16 @@
         `;
       } 
       else if (page === "friends") {
-        content.innerHTML = `
-          <div class="post">
-            <h3>قائمة الأصدقاء</h3>
-            <p>لا توجد إضافات حالياً.</p>
-          </div>
-        `;
+        content.innerHTML = `<div class="post"><h3>قائمة الأصدقاء</h3><p>لا توجد إضافات حالياً.</p></div>`;
       }
       else if (page === "notifications") {
-        content.innerHTML = `
-          <div class="post">
-            <h3>الإشعارات</h3>
-            <p>لا توجد إشعارات جديدة.</p>
-          </div>
-        `;
+        content.innerHTML = `<div class="post"><h3>الإشعارات</h3><p>لا توجد إشعارات جديدة.</p></div>`;
       }
       else if (page === "menu") {
         content.innerHTML = `
           <div class="post">
             <h3>القائمة الرئيسية</h3>
-            <button class="mainButton" onclick="logout()" style="background:#e11d48; margin-top:10px;">تسجيل الخروج</button>
+            <button class="mainButton" onclick="logoutApp()" style="background:#e11d48; margin-top:10px;">تسجيل الخروج</button>
           </div>
         `;
       }
@@ -272,7 +366,8 @@
     }
 
     window.showPage = showPage;
-    window.onload = () => showPage("home");
+    window.logoutApp = logoutApp;
+    window.onload = () => checkAuthAndShow();
   </script>
 </body>
 </html>
