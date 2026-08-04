@@ -3,16 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lammio Lite</title>
+  <title>Lammio</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     :root {
-      --fb-blue: #1877f2;
-      --fb-bg: #f0f2f5;
-      --fb-card: #ffffff;
-      --fb-border: #ced0d4;
-      --fb-text: #050505;
-      --fb-subtext: #65676b;
+      --lammio-blue: #1877f2;
+      --lammio-bg: #f0f2f5;
+      --lammio-card: #ffffff;
+      --lammio-border: #ced0d4;
+      --lammio-text: #050505;
+      --lammio-subtext: #65676b;
     }
 
     * {
@@ -23,13 +23,13 @@
     }
 
     body {
-      background-color: var(--fb-bg);
-      color: var(--fb-text);
+      background-color: var(--lammio-bg);
+      color: var(--lammio-text);
       padding-top: 90px;
       padding-bottom: 20px;
     }
 
-    /* --- Header العلوي --- */
+    /* --- الهيدر العلوي لـ Lammio --- */
     .top-bar {
       position: fixed;
       top: 0;
@@ -42,11 +42,11 @@
       justify-content: space-between;
       padding: 0 12px;
       z-index: 1000;
-      border-bottom: 1px solid var(--fb-border);
+      border-bottom: 1px solid var(--lammio-border);
     }
 
     .top-bar .logo {
-      color: var(--fb-blue);
+      color: var(--lammio-blue);
       font-size: 24px;
       font-weight: bold;
       letter-spacing: -0.5px;
@@ -63,7 +63,7 @@
       width: 34px;
       height: 34px;
       border-radius: 50%;
-      color: var(--fb-text);
+      color: var(--lammio-text);
       font-size: 15px;
       cursor: pointer;
       display: flex;
@@ -71,7 +71,7 @@
       justify-content: center;
     }
 
-    /* --- شريط التبويبات Tabs --- */
+    /* --- شريط التبويبات التفاعلي --- */
     .nav-tabs {
       position: fixed;
       top: 48px;
@@ -80,7 +80,7 @@
       height: 42px;
       background: white;
       display: flex;
-      border-bottom: 1px solid var(--fb-border);
+      border-bottom: 1px solid var(--lammio-border);
       z-index: 999;
     }
 
@@ -90,7 +90,7 @@
       border: none;
       border-bottom: 3px solid transparent;
       font-size: 18px;
-      color: var(--fb-subtext);
+      color: var(--lammio-subtext);
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -99,20 +99,8 @@
     }
 
     .tab-btn.active {
-      color: var(--fb-blue);
-      border-bottom-color: var(--fb-blue);
-    }
-
-    .badge {
-      position: absolute;
-      top: 3px;
-      right: 20%;
-      background: #e41e3f;
-      color: white;
-      font-size: 10px;
-      padding: 1px 5px;
-      border-radius: 10px;
-      font-weight: bold;
+      color: var(--lammio-blue);
+      border-bottom-color: var(--lammio-blue);
     }
 
     /* --- الحاوية الرئيسية --- */
@@ -121,14 +109,14 @@
       margin: 0 auto;
     }
 
-    /* --- صندوق بماذا تفكر --- */
+    /* --- صندوق "بم تفكر؟" --- */
     .create-post-box {
-      background: var(--fb-card);
+      background: var(--lammio-card);
       padding: 10px 12px;
       display: flex;
       align-items: center;
       gap: 10px;
-      border-bottom: 1px solid var(--fb-border);
+      border-bottom: 1px solid var(--lammio-border);
       cursor: pointer;
     }
 
@@ -141,7 +129,7 @@
 
     .create-post-box input {
       flex: 1;
-      border: 1px solid var(--fb-border);
+      border: 1px solid var(--lammio-border);
       border-radius: 20px;
       padding: 8px 14px;
       background: #f0f2f5;
@@ -157,7 +145,7 @@
       padding: 10px;
       background: white;
       overflow-x: auto;
-      border-bottom: 1px solid var(--fb-border);
+      border-bottom: 1px solid var(--lammio-border);
       margin-bottom: 8px;
     }
 
@@ -169,7 +157,7 @@
       position: relative;
       flex-shrink: 0;
       overflow: hidden;
-      border: 1px solid var(--fb-border);
+      border: 1px solid var(--lammio-border);
     }
 
     .story-card.add-story {
@@ -183,7 +171,7 @@
     .story-card.add-story .plus-icon {
       width: 30px;
       height: 30px;
-      background: var(--fb-blue);
+      background: var(--lammio-blue);
       color: white;
       border-radius: 50%;
       display: flex;
@@ -198,56 +186,14 @@
       bottom: 6px;
       font-size: 11px;
       font-weight: bold;
-      color: var(--fb-text);
+      color: var(--lammio-text);
     }
 
-    /* --- المنشورات --- */
+    /* --- كروت المنشورات --- */
     .post {
-      background: var(--fb-card);
-      border-bottom: 8px solid var(--fb-bg);
+      background: var(--lammio-card);
+      border-bottom: 8px solid var(--lammio-bg);
       padding: 12px;
-    }
-
-    .post-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 8px;
-    }
-
-    .post-user {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .post-user img {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      object-fit: cover;
-    }
-
-    .post-actions {
-      display: flex;
-      border-top: 1px solid #e4e6eb;
-      margin-top: 8px;
-      padding-top: 4px;
-    }
-
-    .post-actions button {
-      flex: 1;
-      background: none;
-      border: none;
-      color: var(--fb-subtext);
-      font-size: 13px;
-      font-weight: 600;
-      padding: 6px 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      cursor: pointer;
     }
 
     /* --- شبكة القائمة (Menu Grid) --- */
@@ -266,7 +212,8 @@
       flex-direction: column;
       gap: 8px;
       box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-      border: 1px solid var(--fb-border);
+      border: 1px solid var(--lammio-border);
+      cursor: pointer;
     }
 
     .menu-item i {
@@ -276,43 +223,12 @@
     .menu-item span {
       font-size: 13px;
       font-weight: bold;
-      color: var(--fb-text);
-    }
-
-    /* --- الرسائل --- */
-    .chat-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 10px 12px;
-      background: white;
-      border-bottom: 1px solid #f0f2f5;
-    }
-
-    .chat-item img {
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
-      object-fit: cover;
-    }
-
-    .chat-info {
-      flex: 1;
-    }
-
-    .chat-info h4 {
-      font-size: 14px;
-      margin-bottom: 2px;
-    }
-
-    .chat-info p {
-      font-size: 12px;
-      color: var(--fb-subtext);
+      color: var(--lammio-text);
     }
 
     .mainButton {
       width: 100%;
-      background: var(--fb-blue);
+      background: var(--lammio-blue);
       color: white;
       border: none;
       padding: 10px;
@@ -327,7 +243,7 @@
       width: 100%;
       padding: 10px;
       margin: 6px 0;
-      border: 1px solid var(--fb-border);
+      border: 1px solid var(--lammio-border);
       border-radius: 6px;
       outline: none;
     }
@@ -335,9 +251,9 @@
 </head>
 <body>
 
-  <!-- الهيدر العلوي -->
+  <!-- الهيدر العلوي لـ Lammio -->
   <div class="top-bar">
-    <div class="logo">facebook</div>
+    <div class="logo">Lammio</div>
     <div class="header-icons">
       <button onclick="showPage('post')"><i class="fa-solid fa-plus"></i></button>
       <button onclick="showPage('search')"><i class="fa-solid fa-magnifying-glass"></i></button>
@@ -345,17 +261,16 @@
     </div>
   </div>
 
-  <!-- شريط التبويبات -->
+  <!-- شريط التبويبات الرئيسي -->
   <div class="nav-tabs">
-    <button class="tab-btn active" id="tab-home" onclick="showPage('home')"><i class="fa-solid fa-house"></i><span class="badge">15+</span></button>
-    <button class="tab-btn" id="tab-friends" onclick="showPage('home')"><i class="fa-solid fa-user-group"></i></button>
+    <button class="tab-btn active" id="tab-home" onclick="showPage('home')"><i class="fa-solid fa-house"></i></button>
+    <button class="tab-btn" id="tab-friends" onclick="showPage('friends')"><i class="fa-solid fa-user-group"></i></button>
     <button class="tab-btn" id="tab-messages" onclick="showPage('messages')"><i class="fa-brands fa-facebook-messenger"></i></button>
-    <button class="tab-btn" id="tab-reels" onclick="showPage('home')"><i class="fa-solid fa-tv"></i></button>
-    <button class="tab-btn" id="tab-notifications" onclick="showPage('home')"><i class="fa-solid fa-bell"></i></button>
+    <button class="tab-btn" id="tab-notifications" onclick="showPage('notifications')"><i class="fa-solid fa-bell"></i></button>
     <button class="tab-btn" id="tab-menu" onclick="showPage('menu')"><i class="fa-solid fa-bars"></i></button>
   </div>
 
-  <!-- المحتوى الرئيسي -->
+  <!-- المحتوى الرئيسي للمنصة -->
   <div class="container" id="appContent"></div>
 
   <script type="module" src="./app.js"></script>
@@ -368,11 +283,14 @@
       const activeTab = document.getElementById(`tab-${page}`);
       if(activeTab) activeTab.classList.add('active');
 
+      const userImage = localStorage.getItem("userImage") || "https://via.placeholder.com/40";
+      const userName = localStorage.getItem("userName") || "مستخدم Lammio";
+
       if (page === "home") {
         content.innerHTML = `
           <div class="create-post-box" onclick="showPage('post')">
-            <img src="${localStorage.getItem("userImage") || 'https://via.placeholder.com/40'}" />
-            <input type="text" placeholder="بم تفكر؟" readonly />
+            <img src="${userImage}" />
+            <input type="text" placeholder="بم تفكر في Lammio؟" readonly />
             <i class="fa-regular fa-image" style="color: #45bd62; font-size: 20px;"></i>
           </div>
 
@@ -382,57 +300,37 @@
               <div class="plus-icon"><i class="fa-solid fa-plus"></i></div>
               <span>إنشاء قصة</span>
             </div>
-            <div class="story-card" style="background: linear-gradient(to top, rgba(0,0,0,0.6), transparent), url('https://via.placeholder.com/100x150'); background-size: cover; color:white; padding: 6px; font-size:11px; font-weight:bold; display:flex; align-items:flex-end;">
-              موسيقى
-            </div>
           </div>
 
+          <!-- حاوية المنشورات الحقيقية القادمة من Firebase -->
           <div id="postsContainer"></div>
         `;
         if (window.loadPosts) window.loadPosts();
       } 
       else if (page === "messages") {
-        content.innerHTML = `
-          <div style="background:white; padding:10px 12px;">
-            <h2 style="font-size:20px; margin-bottom:10px;">الرسائل</h2>
-          </div>
-          <div class="chat-item">
-            <img src="https://via.placeholder.com/50" />
-            <div class="chat-info">
-              <h4>Hassan Mohammed</h4>
-              <p>تم التفاعل مع رسالتك باستخدام ❤️</p>
-            </div>
-            <span style="font-size:11px; color:var(--fb-subtext);">38 د</span>
-          </div>
-          <div class="chat-item">
-            <img src="https://via.placeholder.com/50" />
-            <div class="chat-info">
-              <h4>Asran Mohamed</h4>
-              <p>أنت: أهلاً بك</p>
-            </div>
-            <span style="font-size:11px; color:var(--fb-subtext);">19 د</span>
-          </div>
-        `;
+        content.innerHTML = `<div id="messagesPageContainer"></div>`;
+        if (window.showMessages) window.showMessages();
+      }
+      else if (page === "search") {
+        content.innerHTML = `<div id="searchPageContainer"></div>`;
+        if (window.showSearch) window.showSearch();
       }
       else if (page === "menu") {
         content.innerHTML = `
           <div style="padding:10px;">
-            <div style="background:white; padding:12px; border-radius:8px; display:flex; align-items:center; gap:10px; margin-bottom:10px;">
-              <img src="${localStorage.getItem("userImage") || 'https://via.placeholder.com/40'}" style="width:40px;height:40px;border-radius:50%;" />
+            <div style="background:white; padding:12px; border-radius:8px; display:flex; align-items:center; gap:10px; margin-bottom:10px; border:1px solid var(--lammio-border);">
+              <img src="${userImage}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;" />
               <div>
-                <h3 style="font-size:15px;">${localStorage.getItem("userName") || "Hassan Asaad"}</h3>
-                <small style="color:var(--fb-subtext);">عرض ملفك الشخصي</small>
+                <h3 style="font-size:15px;">${userName}</h3>
+                <small style="color:var(--lammio-subtext);">الملف الشخصي</small>
               </div>
             </div>
 
+            <!-- قائمة الخيارات والأدوات الخفيفة -->
             <div class="menu-grid">
-              <div class="menu-item"><i class="fa-brands fa-facebook-messenger" style="color:#0084ff;"></i><span>الرسائل</span></div>
-              <div class="menu-item"><i class="fa-solid fa-chart-line" style="color:#25d366;"></i><span>لوحة المعلومات</span></div>
-              <div class="menu-item"><i class="fa-solid fa-user-group" style="color:#1877f2;"></i><span>الأصدقاء</span></div>
-              <div class="menu-item"><i class="fa-solid fa-users" style="color:#1877f2;"></i><span>المجموعات</span></div>
-              <div class="menu-item"><i class="fa-solid fa-store" style="color:#f7b928;"></i><span>Marketplace</span></div>
-              <div class="menu-item"><i class="fa-solid fa-circle-play" style="color:#e41e3f;"></i><span>ريلز</span></div>
-              <div class="menu-item"><i class="fa-solid fa-sparkles" style="color:#a855f7;"></i><span>Meta AI</span></div>
+              <div class="menu-item" onclick="showPage('messages')"><i class="fa-brands fa-facebook-messenger" style="color:#0084ff;"></i><span>الرسائل</span></div>
+              <div class="menu-item" onclick="showPage('friends')"><i class="fa-solid fa-user-group" style="color:#1877f2;"></i><span>الأصدقاء</span></div>
+              <div class="menu-item"><i class="fa-solid fa-sparkles" style="color:#a855f7;"></i><span>غرفة الأسرار</span></div>
               <div class="menu-item"><i class="fa-solid fa-bookmark" style="color:#a855f7;"></i><span>المحفوظات</span></div>
             </div>
 
@@ -445,20 +343,20 @@
       else if (page === "post") {
         content.innerHTML = `
           <div class="post" style="margin:10px; border-radius:8px;">
-            <h3 style="margin-bottom:10px;">إنشاء منشور</h3>
-            <input id="title" placeholder="العنوان">
+            <h3 style="margin-bottom:10px;">إنشاء منشور جديد</h3>
+            <input id="title" placeholder="عنوان المنشور">
             <textarea id="postText" rows="4" placeholder="بم تفكر؟"></textarea>
             
             <div style="background:#f0f2f5; padding:10px; border-radius:8px; margin:10px 0;">
-              <label style="display:flex; align-items:center; gap:8px;">
+              <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
                 <input type="checkbox" id="isSecret" onchange="document.getElementById('secretPassInput').style.display = this.checked ? 'block' : 'none'">
                 <strong>🔒 منشور في غرفة الأسرار</strong>
               </label>
-              <input type="password" id="secretPassInput" placeholder="كلمة السر" style="display:none; margin-top:8px;">
+              <input type="password" id="secretPassInput" placeholder="كلمة السر للمنشور" style="display:none; margin-top:8px;">
             </div>
 
             <input type="file" id="postImage" accept="image/*">
-            <button class="mainButton" onclick="publishPost()">نشر</button>
+            <button class="mainButton" onclick="publishPost()">نشر في Lammio</button>
           </div>
         `;
       }
