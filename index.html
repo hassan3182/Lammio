@@ -44,11 +44,11 @@
     }
 
     .top-sub-nav {
-      background: rgba(255, 255, 255, 0.5);
+      background: rgba(255, 255, 255, 0.6);
       backdrop-filter: blur(8px);
       display: flex;
       justify-content: space-around;
-      padding: 8px 0;
+      padding: 10px 0;
       border-bottom: 1px solid var(--lammio-glass-border);
       position: sticky;
       top: 53px;
@@ -58,27 +58,50 @@
     .top-sub-nav button {
       background: none;
       border: none;
-      font-size: 20px;
+      font-size: 22px;
       cursor: pointer;
     }
 
     .main-container {
       max-width: 500px;
-      margin: 30px auto;
+      margin: 15px auto;
       padding: 0 12px;
     }
 
-    /* كروت التصميم الزجاجي */
     .post, .auth-card {
       background: var(--lammio-glass);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
       border: 1px solid var(--lammio-glass-border);
       border-radius: 20px;
-      padding: 24px;
+      padding: 20px;
       margin-bottom: 16px;
-      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
+      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.08);
+    }
+
+    /* تنسيق أزرار القائمة الرئيسية المربعة مثل الصورة */
+    .menu-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 15px;
+    }
+
+    .menu-card {
+      background: rgba(255, 255, 255, 0.85);
+      border: 1px solid var(--lammio-glass-border);
+      border-radius: 16px;
+      padding: 20px;
       text-align: center;
+      cursor: pointer;
+      font-weight: bold;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+      transition: 0.2s;
+    }
+
+    .menu-card:hover {
+      background: #ffffff;
+      transform: translateY(-2px);
     }
 
     input, textarea {
@@ -125,6 +148,20 @@
       font-size: 15px;
       box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
       margin-top: 10px;
+    }
+
+    .logout-btn {
+      background: #e11d48;
+      color: white;
+      border: none;
+      padding: 14px;
+      width: 100%;
+      border-radius: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 16px;
+      box-shadow: 0 4px 15px rgba(225, 29, 72, 0.3);
+      text-align: center;
     }
 
     nav {
@@ -176,7 +213,6 @@
   <script type="module" src="./app.js"></script>
 
   <script>
-    // التحقق من حالة تسجيل الدخول وعرض الصفحات بناءً عليها
     function checkAuthAndShow() {
       const isLoggedIn = sessionStorage.getItem("loggedIn") === "true";
       const headerContainer = document.getElementById("headerContainer");
@@ -191,24 +227,25 @@
           headerContainer.innerHTML = `
             <header>
               <div class="logo">Lammio</div>
-              <div>
-                <button onclick="logoutApp()" style="background:none; border:none; cursor:pointer; font-weight:bold; color:#e11d48; font-size:14px;">🚪 خروج</button>
+              <div style="display:flex; gap:12px; align-items:center;">
+                <button onclick="showPage('search')" style="background:none; border:none; font-size:20px; cursor:pointer;">🔍</button>
+                <button onclick="showPage('post')" style="background:none; border:none; font-size:20px; cursor:pointer;">➕</button>
               </div>
             </header>
             <div class="top-sub-nav">
-              <button onclick="showPage('home')">🏠</button>
-              <button onclick="showPage('friends')">👥</button>
-              <button onclick="showPage('notifications')">🔔</button>
               <button onclick="showPage('menu')">☰</button>
+              <button onclick="showPage('notifications')">🔔</button>
+              <button onclick="showPage('friends')">👥</button>
+              <button onclick="showPage('home')">🏠</button>
             </div>
           `;
         }
         if (navContainer) {
           navContainer.innerHTML = `
             <nav>
-              <button onclick="showPage('home')">🏠</button>
-              <button onclick="showPage('post')">➕</button>
               <button onclick="showPage('friends')">👥</button>
+              <button onclick="showPage('post')">➕</button>
+              <button onclick="showPage('home')">🏠</button>
             </nav>
           `;
         }
@@ -220,7 +257,7 @@
       let content = document.getElementById("appContent");
       if (!content) return;
       content.innerHTML = `
-        <div class="auth-card">
+        <div class="auth-card" style="text-align:center;">
           <h2 style="color: var(--lammio-primary); margin-bottom: 4px; font-size: 28px;">Lammio</h2>
           <p style="color: #4b5563; margin-bottom: 20px; font-size: 14px;">تسجيل الدخول إلى حسابك</p>
           
@@ -240,10 +277,7 @@
     async function handleLogin() {
       const email = document.getElementById("authEmail").value;
       const password = document.getElementById("authPassword").value;
-      if (!email || !password) {
-        alert("يرجى إدخال البريد الإلكتروني وكلمة السر.");
-        return;
-      }
+      if (!email || !password) { alert("يرجى إدخال البريد الإلكتروني وكلمة السر."); return; }
       if (window.login) {
         await window.login(email, password);
         checkAuthAndShow();
@@ -253,10 +287,7 @@
     async function handleRegister() {
       const email = document.getElementById("authEmail").value;
       const password = document.getElementById("authPassword").value;
-      if (!email || !password) {
-        alert("يرجى إدخال البريد الإلكتروني وكلمة السر للتسجيل.");
-        return;
-      }
+      if (!email || !password) { alert("يرجى إدخال البريد الإلكتروني وكلمة السر للتسجيل."); return; }
       if (window.register) {
         await window.register(email, password);
         checkAuthAndShow();
@@ -266,19 +297,12 @@
     async function handleForgotPassword(e) {
       e.preventDefault();
       const email = document.getElementById("authEmail").value;
-      if (!email) {
-        alert("يرجى كتابة بريدك الإلكتروني في حقل البريد الإلكتروني أولاً ثم اضغط على نسيت كلمة السر.");
-        return;
-      }
-      if (window.resetPassword) {
-        await window.resetPassword(email);
-      }
+      if (!email) { alert("يرجى كتابة بريدك الإلكتروني في حقل البريد الإلكتروني أولاً."); return; }
+      if (window.resetPassword) { await window.resetPassword(email); }
     }
 
     function logoutApp() {
-      if (window.logout) {
-        window.logout();
-      }
+      if (window.logout) { window.logout(); }
       sessionStorage.removeItem("loggedIn");
       checkAuthAndShow();
     }
@@ -294,7 +318,6 @@
             <div style="width:36px; height:36px; background:#ddd; border-radius:50%;"></div>
             <div onclick="showPage('post')" style="flex:1; background:rgba(255,255,255,0.7); padding:8px 12px; border-radius:20px; color:#666; cursor:pointer; font-size:14px;">بم تفكر في Lammio؟</div>
           </div>
-
           <div id="storiesContainer" style="display:flex; gap:10px; overflow-x:auto; padding-bottom:8px; margin-bottom:12px;">
             <div class="story-card">➕ قصة</div>
           </div>
@@ -330,12 +353,28 @@
       else if (page === "notifications") {
         content.innerHTML = `<div class="post"><h3>الإشعارات</h3><p>لا توجد إشعارات جديدة.</p></div>`;
       }
+      else if (page === "search") {
+        content.innerHTML = `<div class="post"><h3>البحث</h3><input placeholder="ابحث في Lammio..."></div>`;
+      }
       else if (page === "menu") {
+        // تصميم القائمة الرئيسية المطابق للصورة الأولى تماماً
         content.innerHTML = `
-          <div class="post">
-            <h3>القائمة الرئيسية</h3>
-            <button class="mainButton" onclick="logoutApp()" style="background:#e11d48; margin-top:10px;">تسجيل الخروج</button>
+          <div class="post" style="display:flex; align-items:center; gap:12px;">
+            <div style="width:50px; height:50px; background:#ddd; border-radius:50%;"></div>
+            <div>
+              <h4 style="margin:0;">مستخدم Lammio</h4>
+              <span style="font-size:13px; color:#666;">الملف الشخصي</span>
+            </div>
           </div>
+
+          <div class="menu-grid">
+            <div class="menu-card" onclick="showPage('friends')">👥 الأصدقاء</div>
+            <div class="menu-card" onclick="alert('قريباً ميزة الرسائل')">💬 الرسائل</div>
+            <div class="menu-card" onclick="alert('لا توجد محفوظات')">📌 المحفوظات</div>
+            <div class="menu-card" onclick="alert('غرفة الأسرار')">🔒 غرفة الأسرار</div>
+          </div>
+
+          <button class="logout-btn" onclick="logoutApp()">🚪 تسجيل الخروج</button>
         `;
       }
     }
@@ -348,11 +387,7 @@
       let secretPass = document.getElementById("secretPassInput") ? document.getElementById("secretPassInput").value : "";
       let btn = document.getElementById("publishBtn");
 
-      if (!title || !text) { 
-        alert("يرجى كتابة عنوان ونص المنشور"); 
-        return; 
-      }
-
+      if (!title || !text) { alert("يرجى كتابة عنوان ونص المنشور"); return; }
       let mediaFile = mediaInput && mediaInput.files[0] ? mediaInput.files[0] : null;
 
       if (btn) {

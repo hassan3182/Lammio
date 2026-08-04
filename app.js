@@ -18,14 +18,14 @@ import {
   serverTimestamp 
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-// إعدادات Firebase الخاصة بك
+// إعدادات Firebase الخاصة بمشروعك (Lammio)
 const firebaseConfig = {
-  apiKey: "AIzaSyD... (ضع مفتاحك هنا)",
+  apiKey: "AIzaSyD... (المفتاح الحقيقي لمشروعك)",
   authDomain: "lammio-app.firebaseapp.com",
   projectId: "lammio-app",
   storageBucket: "lammio-app.appspot.com",
-  messagingSenderId: "...",
-  appId: "..."
+  messagingSenderId: "123456789",
+  appId: "1:123456789:web:abcdef"
 };
 
 // تهيئة Firebase
@@ -122,7 +122,7 @@ function compressImage(file) {
         canvas.height = height;
         const ctx = canvas.getContext("2d");
         ctx.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL("image/jpeg", 0.7)); // ضغط الجودة لـ 70%
+        resolve(canvas.toDataURL("image/jpeg", 0.7));
       };
     };
   });
@@ -134,7 +134,6 @@ async function convertFileToBase64(file) {
   if (file.type.startsWith("image/")) {
     return await compressImage(file);
   } else {
-    // للفيديوهات أو الملفات الأخرى
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.readAsDataURL(file);
@@ -151,7 +150,7 @@ export async function savePost(title, text, isSecret, secretPass, mediaFile) {
     let mediaType = "";
 
     if (mediaFile) {
-      if (mediaFile.size > 2 * 1024 * 1024) { // التحذير إذا كان الملف كبيراً جداً
+      if (mediaFile.size > 2 * 1024 * 1024) {
         alert("الملف الكبير قد يستغرق وقتاً قليلاً للمعالجة...");
       }
       mediaBase64 = await convertFileToBase64(mediaFile);
@@ -228,7 +227,7 @@ export async function loadPosts() {
   }
 }
 
-// ربط الدوال بالنافذة العامة لتتمكن صفحات HTML من الوصول إليها
+// ربط الدوال بالنافذة العامة
 window.login = login;
 window.register = register;
 window.logout = logout;
