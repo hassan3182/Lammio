@@ -4,6 +4,8 @@ export function showMessages() {
 
 const content = document.getElementById("content");
 
+const savedReceiver = localStorage.getItem("chatReceiver") || "";
+
 content.innerHTML = `
 
 <h2>💬 الرسائل</h2>
@@ -11,7 +13,8 @@ content.innerHTML = `
 <input
 id="receiver"
 type="email"
-placeholder="البريد الإلكتروني للطرف الآخر">
+placeholder="البريد الإلكتروني للطرف الآخر"
+value="${savedReceiver}">
 
 <div id="messagesArea"
 style="
@@ -47,21 +50,26 @@ if(receiver==="") return;
 
 listenMessages(receiver,(messages)=>{
 
-const area = document.getElementById("messagesArea");
+const area=document.getElementById("messagesArea");
 
 area.innerHTML="";
 
 messages.forEach(msg=>{
 
+const mine =
+window.currentUser &&
+msg.sender===window.currentUser.email;
+
 area.innerHTML += `
 
 <div style="
-background:#4f46e5;
-color:white;
+background:${mine ? "#4f46e5" : "#ddd"};
+color:${mine ? "white" : "black"};
 padding:10px;
 border-radius:10px;
 margin-bottom:8px;
-width:fit-content;
+margin-left:${mine ? "40px" : "0"};
+margin-right:${mine ? "0" : "40px"};
 ">
 
 ${msg.text}
@@ -72,23 +80,29 @@ ${msg.text}
 
 });
 
-area.scrollTop = area.scrollHeight;
+area.scrollTop=area.scrollHeight;
 
 });
 
 }
 
-receiverInput.addEventListener("input",loadChat);
+receiverInput.addEventListener("input",()=>{
 
-sendBtn.onclick = async ()=>{
+localStorage.setItem("chatReceiver",receiverInput.value);
 
-const receiver = receiverInput.value.trim();
+loadChat();
 
-const text = document.getElementById("messageText").value.trim();
+});
+
+sendBtn.onclick=async()=>{
+
+const receiver=receiverInput.value.trim();
+
+const text=document.getElementById("messageText").value.trim();
 
 if(receiver==="" || text===""){
 
-alert("اكتب البريد الإلكتروني والرسالة");
+alert("اكتب البريد والرسالة");
 
 return;
 
@@ -102,6 +116,12 @@ loadChat();
 
 };
 
+if(savedReceiver!==""){
+
+loadChat();
+
 }
 
-window.showMessages = showMessages;
+}
+
+window.showMessages=showMessages;

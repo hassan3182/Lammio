@@ -199,7 +199,15 @@ function showPage(page){
 
     else if(page=="search"){
 
-        showSearch();
+        if(window.showSearch){
+
+            window.showSearch();
+
+        }else{
+
+            alert("search.js لم يتم تحميله");
+
+        }
 
     }
 
@@ -223,19 +231,19 @@ function showPage(page){
 
     }
 
-    else if(page=="search"){
+    else if(page=="messages"){
 
-    if(window.showSearch){
+        if(window.showMessages){
 
-        window.showSearch();
+            window.showMessages();
 
-    }else{
+        }else{
 
-        alert("search.js لم يتم تحميله");
+            alert("messages.js لم يتم تحميله");
+
+        }
 
     }
-
-}
 
     else if(page=="profile"){
 

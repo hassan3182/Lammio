@@ -28,7 +28,8 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
-
+import { showSearch } from "./search.js";
+import { showMessages } from "./messages.js";
 async function savePost(title, text) {
 
   try {
