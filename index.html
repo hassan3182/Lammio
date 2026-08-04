@@ -181,10 +181,13 @@ onclick="login(document.getElementById('email').value, document.getElementById('
 window.showLogin = showLogin;
 function showPage(page){
 
-    if (!window.currentUser){
-        showLogin();
-        return;
-    }
+    if (
+    !window.currentUser &&
+    sessionStorage.getItem("loggedIn") !== "true"
+){
+    showLogin();
+    return;
+}
 
     if(page=="home"){
 

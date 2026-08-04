@@ -16,6 +16,9 @@ import {
   orderBy
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
+import { showSearch } from "./search.js";
+import { showMessages } from "./messages.js";
+
 const firebaseConfig = {
   apiKey: "AIzaSyAR-rrGnNo0XnblSHJw6a0FerAe_g-Qd9Y",
   authDomain: "lammio-9335b.firebaseapp.com",
@@ -28,8 +31,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
-import { showSearch } from "./search.js";
-import { showMessages } from "./messages.js";
+
 async function savePost(title, text) {
 
   try {
@@ -178,11 +180,11 @@ export async function login(email, password) {
 
     window.currentUser = userCredential.user;
 
+    sessionStorage.setItem("loggedIn","true");
+
     alert("تم تسجيل الدخول");
 
-    if (window.showPage) {
-      window.showPage("home");
-    }
+    showPage("home");
 
     return userCredential.user;
 
@@ -194,6 +196,7 @@ export async function login(email, password) {
 
   }
 
+}
 }
 export async function logout() {
 
