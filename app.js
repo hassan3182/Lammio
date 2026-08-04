@@ -47,7 +47,9 @@ window.currentUser = user;
 
   } else {
 window.currentUser = null;
-    if (typeof showLogin === "function") {
+    if (window.showLogin) {
+    window.showLogin();
+}
       showLogin();
     }
 

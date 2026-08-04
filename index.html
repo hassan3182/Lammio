@@ -163,25 +163,14 @@ content.innerHTML = `
 <input id="password" type="password" placeholder="كلمة المرور">
 
 <button class="mainButton"
-onclick="register(
-document.getElementById('email').value,
-document.getElementById('password').value
-)">
+onclick="register(document.getElementById('email').value, document.getElementById('password').value)">
 إنشاء حساب
 </button>
 
 <button class="mainButton"
-onclick="login(
-document.getElementById('email').value,
-document.getElementById('password').value
-).then(user=>{
-if(user){
-showPage('home');
-}
-})">
+onclick="login(document.getElementById('email').value, document.getElementById('password').value)">
 تسجيل الدخول
 </button>
-
 `;
 
 }
@@ -243,6 +232,7 @@ function showPage(page){
         `;
     }
 }
+window.showLogin = showLogin;
 function publishPost() {
 if (!localStorage.getItem("userName")) {
     alert("يجب تسجيل الدخول أولاً");
@@ -377,20 +367,32 @@ showPage("profile");
 
 }
 function sharePost(button) {
+
   const post = button.closest(".post");
+
   const title = post.querySelector("h4").innerText;
   const text = post.querySelector("p").innerText;
 
+  const shareText =
+    title + "\n\n" +
+    text + "\n\n" +
+    "https://hassan3182.github.io/Lammio/";
+
   if (navigator.share) {
+
     navigator.share({
       title: title,
-      text: text,
-      url: window.location.href
+      text: shareText
     });
+
   } else {
-    navigator.clipboard.writeText(window.location.href);
-    alert("تم نسخ رابط التطبيق، يمكنك إرساله.");
+
+    navigator.clipboard.writeText(shareText);
+
+    alert("تم نسخ المنشور ورابط التطبيق.");
+
   }
+
 }
 window.showPage = showPage;
 
