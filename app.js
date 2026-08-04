@@ -33,11 +33,8 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 
 async function savePost(title, text) {
-
   try {
-
     await addDoc(collection(db, "posts"), {
-
       title: title,
       text: text,
       image: localStorage.getItem("tempPostImage") || "",
@@ -45,7 +42,6 @@ async function savePost(title, text) {
       authorEmail: auth.currentUser ? auth.currentUser.email : "مجهول",
       authorImage: localStorage.getItem("userImage") || "",
       createdAt: new Date().toISOString()
-
     });
 
     localStorage.removeItem("tempPostImage");
@@ -53,125 +49,78 @@ async function savePost(title, text) {
     if(window.showPage){
       window.showPage("home");
     }
-
   } catch(error){
-
     alert(error.message);
-
   }
-
 }
 
 window.savePost = savePost;
 
 async function loadPosts(){
-
-  const container=document.getElementById("postsContainer");
-
+  const container = document.getElementById("postsContainer");
   if(!container) return;
 
-  const q=query(
-    collection(db,"posts"),
-    orderBy("createdAt","desc")
+  const q = query(
+    collection(db, "posts"),
+    orderBy("createdAt", "desc")
   );
 
-  onSnapshot(q,(snapshot)=>{
+  onSnapshot(q, (snapshot) => {
+    container.innerHTML = "";
 
-    container.innerHTML="";
+    snapshot.forEach((docSnap) => {
+      const post = docSnap.data();
+      const date = new Date(post.createdAt);
 
-    snapshot.forEach((docSnap)=>{
-
-      const post=docSnap.data();
-
-      const date=new Date(post.createdAt);
-
-      container.innerHTML+=`
-
+      container.innerHTML += `
       <div class="post">
-
         <div style="display:flex;align-items:center;gap:12px;">
-
           <img
           src="${post.authorImage || 'https://via.placeholder.com/50'}"
           style="width:50px;height:50px;border-radius:50%;object-fit:cover;">
-
           <div>
-
             <h3 style="margin:0;">${post.author}</h3>
-
             <small style="color:gray;">
-              ${date.toLocaleDateString()}
-              -
-              ${date.toLocaleTimeString()}
+              ${date.toLocaleDateString()} - ${date.toLocaleTimeString()}
             </small>
-
           </div>
-
         </div>
-
         <h4>${post.title}</h4>
-
         <p>${post.text}</p>
-
         ${post.image ? `
         <img
         src="${post.image}"
-        style="
-        width:100%;
-        max-height:400px;
-        object-fit:cover;
-        border-radius:12px;
-        margin-top:10px;
-        margin-bottom:10px;
-        ">
+        style="width:100%;max-height:400px;object-fit:cover;border-radius:12px;margin-top:10px;margin-bottom:10px;">
         ` : ""}
-
         <div class="actions">
-
           <button onclick="likePost(this)">❤️ <span>0</span></button>
-
           <button onclick="showComment(this)">💬 تعليق</button>
-
-          <button>↗ مشاركة</button>
-
+          <button onclick="sharePost(this)">↗ مشاركة</button>
         </div>
-
         <div class="comments"></div>
-
       </div>
-
       `;
-
     });
-
   });
-
 }
 
 window.loadPosts = loadPosts;
 
 export async function register(email, password) {
-
   try {
-
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-
+    window.currentUser = userCredential.user;
+    sessionStorage.setItem("loggedIn", "true");
     alert("تم إنشاء الحساب بنجاح");
-
+    if (window.showPage) window.showPage("home");
     return userCredential.user;
-
   } catch (error) {
-
     alert(error.message);
-
   }
-
 }
 
 export async function login(email, password) {
-
   try {
-
     const userCredential = await signInWithEmailAndPassword(
       auth,
       email,
@@ -179,31 +128,24 @@ export async function login(email, password) {
     );
 
     window.currentUser = userCredential.user;
-
-    sessionStorage.setItem("loggedIn","true");
-
+    sessionStorage.setItem("loggedIn", "true");
     alert("تم تسجيل الدخول");
 
-    showPage("home");
+    if (window.showPage) window.showPage("home");
 
     return userCredential.user;
-
   } catch (error) {
-
     console.log(error);
-
     alert(error.message);
-
   }
+}
 
-}
-}
 export async function logout() {
-
   await signOut(auth);
-
+  window.currentUser = null;
+  sessionStorage.removeItem("loggedIn");
   alert("تم تسجيل الخروج");
-
+  if (window.showLogin) window.showLogin();
 }
 
 window.register = register;
