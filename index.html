@@ -154,6 +154,8 @@ showLogin();
 
 function showLogin(){
 
+window.currentUser = null;
+
 content.innerHTML = `
 
 <h2>تسجيل الدخول إلى Lammio</h2>
@@ -163,22 +165,12 @@ content.innerHTML = `
 <input id="password" type="password" placeholder="كلمة المرور">
 
 <button class="mainButton"
-onclick="register(
-document.getElementById('email').value,
-document.getElementById('password').value
-)">
+onclick="register(document.getElementById('email').value, document.getElementById('password').value)">
 إنشاء حساب
 </button>
 
 <button class="mainButton"
-onclick="login(
-document.getElementById('email').value,
-document.getElementById('password').value
-).then(user=>{
-if(user){
-showPage('home');
-}
-})">
+onclick="login(document.getElementById('email').value, document.getElementById('password').value)">
 تسجيل الدخول
 </button>
 
@@ -186,96 +178,86 @@ showPage('home');
 
 }
 
+window.showLogin = showLogin;
 function showPage(page){
 
-if(page=="home"){
+    if (!window.currentUser){
+        showLogin();
+        return;
+    }
 
-content.innerHTML = `
-<h2>🏠 الصفحة الرئيسية</h2>
+    if(page=="home"){
 
-<div id="postsContainer"></div>
-`;
+        content.innerHTML = `
+        <h2>🏠 الصفحة الرئيسية</h2>
+        <div id="postsContainer"></div>
+        `;
 
-loadPosts();
+        loadPosts();
 
-}
+    }
 
-if(page=="search"){
+    else if(page=="search"){
 
-content.innerHTML = `
-<h2>🔍 البحث</h2>
+        showSearch();
 
-<input type="text" placeholder="ابحث عن مستخدم...">
+    }
 
-`;
+    else if(page=="post"){
 
-}
+        content.innerHTML = `
 
-if(page=="post"){
+        <h2>➕ إنشاء منشور</h2>
 
-content.innerHTML = `
+        <input id="title" placeholder="عنوان المنشور">
 
-<h2>➕ إنشاء منشور</h2>
+        <textarea id="postText" placeholder="بماذا تفكر؟"></textarea>
 
-<input id="title" placeholder="عنوان المنشور">
+        <input type="file" id="postImage" accept="image/*">
 
-<textarea id="postText" placeholder="بماذا تفكر؟"></textarea>
+        <button class="mainButton" onclick="publishPost()">
+        نشر المنشور
+        </button>
 
-<input type="file" id="postImage" accept="image/*">
+        `;
 
-<button class="mainButton" onclick="publishPost()">
+    }
 
-نشر المنشور
+    else if(page=="messages"){
 
-</button>
+        showMessages();
 
-`;
+    }
 
-}
+    else if(page=="profile"){
 
-if(page=="messages"){
+        content.innerHTML = `
 
-content.innerHTML = `
+        <div class="post" style="text-align:center;">
 
-<h2>💬 الرسائل</h2>
+        <h2>👤 الملف الشخصي</h2>
 
-<p>لا توجد رسائل حالياً.</p>
+        <img
+        src="${userImage || 'https://via.placeholder.com/120'}"
+        style="width:120px;height:120px;border-radius:50%;margin:15px 0;">
 
-`;
+        <input type="file" id="newProfileImage" accept="image/*">
 
-}
+        <h3>${userName}</h3>
 
-if(page=="profile"){
+        <p>${userBio}</p>
 
-content.innerHTML = `
+        <hr>
 
-<div class="post" style="text-align:center;">
+        <button class="mainButton" onclick="editProfile()">
+        ✏️ تعديل الملف الشخصي
+        </button>
 
-<h2>👤 الملف الشخصي</h2>
+        </div>
 
-<img
-src="${userImage || 'https://via.placeholder.com/120'}"
-style="width:120px;height:120px;border-radius:50%;margin:15px 0;">
+        `;
 
-<input type="file" id="newProfileImage" accept="image/*">
-
-<h3>${userName}</h3>
-
-<p>${userBio}</p>
-
-<hr>
-
-<button class="mainButton" onclick="editProfile()">
-
-✏️ تعديل الملف الشخصي
-
-</button>
-
-</div>
-
-`;
-
-}
+    }
 
 }
 function publishPost() {
