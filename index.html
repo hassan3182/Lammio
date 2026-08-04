@@ -163,81 +163,123 @@ content.innerHTML = `
 <input id="password" type="password" placeholder="كلمة المرور">
 
 <button class="mainButton"
-onclick="register(document.getElementById('email').value, document.getElementById('password').value)">
+onclick="register(
+document.getElementById('email').value,
+document.getElementById('password').value
+)">
 إنشاء حساب
 </button>
 
 <button class="mainButton"
-onclick="login(document.getElementById('email').value, document.getElementById('password').value)">
+onclick="login(
+document.getElementById('email').value,
+document.getElementById('password').value
+).then(user=>{
+if(user){
+showPage('home');
+}
+})">
 تسجيل الدخول
 </button>
+
 `;
 
 }
 
 function showPage(page){
 
-    if (!window.currentUser) {
-        showLogin();
-        return;
-    }
+if(page=="home"){
 
-    if(page=="home"){
+content.innerHTML = `
+<h2>🏠 الصفحة الرئيسية</h2>
 
-        content.innerHTML=`
-        <h2>🏠 الصفحة الرئيسية</h2>
-        <div id="postsContainer"></div>
-        `;
+<div id="postsContainer"></div>
+`;
 
-        loadPosts();
+loadPosts();
 
-    }
-
-    else if(page=="search"){
-
-        showSearch();
-
-    }
-
-    else if(page=="post"){
-
-        content.innerHTML=`
-
-        <h2>➕ إنشاء منشور</h2>
-
-        <input id="title" placeholder="عنوان المنشور">
-
-        <textarea id="postText" placeholder="بماذا تفكر؟"></textarea>
-
-        <input type="file" id="postImage" accept="image/*">
-
-        <button class="mainButton" onclick="publishPost()">
-        نشر المنشور
-        </button>
-
-        `;
-
-    }
-
-    else if(page=="messages"){
-
-        showMessages();
-
-    }
-
-    else if(page=="profile"){
-
-        content.innerHTML=`
-        ...
-        `;
-    }
 }
-window.showLogin = showLogin;
+
+if(page=="search"){
+
+content.innerHTML = `
+<h2>🔍 البحث</h2>
+
+<input type="text" placeholder="ابحث عن مستخدم...">
+
+`;
+
+}
+
+if(page=="post"){
+
+content.innerHTML = `
+
+<h2>➕ إنشاء منشور</h2>
+
+<input id="title" placeholder="عنوان المنشور">
+
+<textarea id="postText" placeholder="بماذا تفكر؟"></textarea>
+
+<input type="file" id="postImage" accept="image/*">
+
+<button class="mainButton" onclick="publishPost()">
+
+نشر المنشور
+
+</button>
+
+`;
+
+}
+
+if(page=="messages"){
+
+content.innerHTML = `
+
+<h2>💬 الرسائل</h2>
+
+<p>لا توجد رسائل حالياً.</p>
+
+`;
+
+}
+
+if(page=="profile"){
+
+content.innerHTML = `
+
+<div class="post" style="text-align:center;">
+
+<h2>👤 الملف الشخصي</h2>
+
+<img
+src="${userImage || 'https://via.placeholder.com/120'}"
+style="width:120px;height:120px;border-radius:50%;margin:15px 0;">
+
+<input type="file" id="newProfileImage" accept="image/*">
+
+<h3>${userName}</h3>
+
+<p>${userBio}</p>
+
+<hr>
+
+<button class="mainButton" onclick="editProfile()">
+
+✏️ تعديل الملف الشخصي
+
+</button>
+
+</div>
+
+`;
+
+}
+
+}
 function publishPost() {
-if (!localStorage.getItem("userName")) {
-    alert("يجب تسجيل الدخول أولاً");
-    return;
-}
+
 let title = document.getElementById("title").value;
 let text = document.getElementById("postText").value;
 
@@ -366,39 +408,10 @@ localStorage.setItem("userBio",userBio);
 showPage("profile");
 
 }
-function sharePost(button) {
-
-  const post = button.closest(".post");
-
-  const title = post.querySelector("h4").innerText;
-  const text = post.querySelector("p").innerText;
-
-  const shareText =
-    title + "\n\n" +
-    text + "\n\n" +
-    "https://hassan3182.github.io/Lammio/";
-
-  if (navigator.share) {
-
-    navigator.share({
-      title: title,
-      text: shareText
-    });
-
-  } else {
-
-    navigator.clipboard.writeText(shareText);
-
-    alert("تم نسخ المنشور ورابط التطبيق.");
-
-  }
-
-}
 window.showPage = showPage;
 
 </script>
-<script type="module" src="search.js"></script>
-<script type="module" src="messages.js"></script>
+
 <script type="module" src="app.js"></script>
 
 </body>
