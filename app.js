@@ -1,6 +1,3 @@
-
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-
 import {
   getAuth,
   createUserWithEmailAndPassword,
@@ -45,12 +42,21 @@ window.currentUser = user;
       window.showPage("home");
     }
 
+onAuthStateChanged(auth, (user) => {
+  window.currentUser = user;
+
+  if (user) {
+
+    if (window.showPage) {
+      window.showPage("home");
+    }
+
   } else {
-window.currentUser = null;
+
+    window.currentUser = null;
+
     if (window.showLogin) {
-    window.showLogin();
-}
-      showLogin();
+      window.showLogin();
     }
 
   }
@@ -293,6 +299,113 @@ callback(data);
 });
 
 }
+import { auth } from "./firebase.js";
+import { 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword, 
+  signOut,
+  onAuthStateChanged 
+} from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+
+const content = document.getElementById("content");
+
+// تتبع حالة تسجيل الدخول تلقائياً
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    window.currentUser = user;
+    let userName = user.email.split('@')[0];
+    localStorage.setItem("userName", userName);
+    showPage("home");
+  } else {
+    window.currentUser = null;
+    showLogin();
+  }
+});
+
+// دالة عرض صفحة تسجيل الدخول
+function showLogin() {
+  content.innerHTML = `
+    <h2>تسجيل الدخول إلى Lammio</h2>
+    <input id="email" type="email" placeholder="البريد الإلكتروني">
+    <input id="password" type="password" placeholder="كلمة المرور">
+    <button class="mainButton" onclick="register()">إنشاء حساب</button>
+    <button class="mainButton" style="margin-top:10px; background:#3730a3;" onclick="login()">تسجيل الدخول</button>
+  `;
+}
+
+// دالة إنشاء حساب
+async function register() {
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('password').value;
+  if (!email || !password) return alert("برجاء إدخال البريد وكلمة المرور");
+
+  try {
+    await createUserWithEmailAndPassword(auth, email, password);
+    alert("تم إنشاء الحساب بنجاح!");
+  } catch (error) {
+    alert("خطأ: " + error.message);
+  }
+}
+
+// دالة تسجيل الدخول
+async function login() {
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('password').value;
+  if (!email || !password) return alert("برجاء إدخال البريد وكلمة المرور");
+
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+    alert("أهلاً بك مجدداً!");
+  } catch (error) {
+    alert("خطأ: " + error.message);
+  }
+}
+
+// دالة تسجيل الخروج
+async function logout() {
+  await signOut(auth);
+  alert("تم تسجيل الخروج");
+}
+
+// دالة التنقل بين الصفحات
+function showPage(page) {
+  if (!window.currentUser) {
+    showLogin();
+    return;
+  }
+
+  if (page === "home") {
+    content.innerHTML = `
+      <h2>🏠 الصفحة الرئيسية</h2>
+      <p>مرحباً بك يا ${localStorage.getItem("userName") || 'مستخدم'}</p>
+      <div id="postsContainer">لا توجد منشورات حالياً.</div>
+    `;
+  } else if (page === "search") {
+    content.innerHTML = `<h2>🔍 البحث</h2><input placeholder="ابحث هنا...">`;
+  } else if (page === "post") {
+    content.innerHTML = `
+      <h2>➕ إنشاء منشور</h2>
+      <input id="title" placeholder="عنوان المنشور">
+      <textarea id="postText" placeholder="بماذا تفكر؟"></textarea>
+      <button class="mainButton" onclick="alert('قريباً: ربط نشر المنشورات بالـ Firestore')">نشر</button>
+    `;
+  } else if (page === "messages") {
+    content.innerHTML = `<h2>💬 الرسائل</h2><p>قائمة الرسائل قريباً...</p>`;
+  } else if (page === "profile") {
+    content.innerHTML = `
+      <h2>👤 الملف الشخصي</h2>
+      <p><strong>البريد:</strong> ${window.currentUser.email}</p>
+      <button class="mainButton" style="background:#dc2626; margin-top:20px;" onclick="logout()">تسجيل الخروج</button>
+    `;
+  }
+}
+
+// تصدير الدوال للشاشات وربطها بـ window
+window.login = login;
+window.register = register;
+window.logout = logout;
+window.showPage = showPage;
+window.showLogin = showLogin;
 
 window.sendMessage = sendMessage;
 window.listenMessages = listenMessages;
