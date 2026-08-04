@@ -18,14 +18,14 @@ import {
   serverTimestamp 
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-// إعدادات Firebase الخاصة بمشروعك (Lammio)
+// إعدادات Firebase الخاصة بمشروعك الحقيقي
 const firebaseConfig = {
-  apiKey: "AIzaSyD... (المفتاح الحقيقي لمشروعك)",
-  authDomain: "lammio-app.firebaseapp.com",
-  projectId: "lammio-app",
-  storageBucket: "lammio-app.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "1:123456789:web:abcdef"
+  apiKey: "AIzaSyAR-rrGnNo0XnblSHJw6a0FerAe_g-Qd9Y",
+  authDomain: "lammio-9335b.firebaseapp.com",
+  projectId: "lammio-9335b",
+  storageBucket: "lammio-9335b.firebasestorage.app",
+  messagingSenderId: "601630216360",
+  appId: "1:601630216360:web:eec05a140d7adb62ac329d"
 };
 
 // تهيئة Firebase
