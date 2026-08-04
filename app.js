@@ -35,13 +35,6 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
 onAuthStateChanged(auth, (user) => {
-window.currentUser = user;
-  if (user) {
-
-    if (window.showPage) {
-      window.showPage("home");
-    }
-onAuthStateChanged(auth, (user) => {
   window.currentUser = user;
 
   if (user) {
