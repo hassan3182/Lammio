@@ -1,3 +1,4 @@
+alert("APP.JS WORKING");
 import { auth, db } from "./firebase.js";
 
 import {
