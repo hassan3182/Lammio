@@ -20,6 +20,11 @@ export async function showSearch(){
     const results = document.getElementById("results");
     results.innerHTML = "";
 
+    if (value === "") {
+      alert("يرجى كتابة اسم المستخدم أولاً");
+      return;
+    }
+
     try {
       const snapshot = await getDocs(collection(db, "users"));
 
@@ -30,7 +35,7 @@ export async function showSearch(){
             <div class="post">
               <h3>@${user.username}</h3>
               <p>${user.bio || ''}</p>
-              <button class="mainButton" onclick="window.openChat('${user.email}')">فتح المحادثة</button>
+              <button class="mainButton" onclick="openChat('${user.email}')">فتح المحادثة 💬</button>
             </div>
           `;
         }
@@ -41,11 +46,16 @@ export async function showSearch(){
   };
 }
 
-window.showSearch = showSearch;
-
-window.openChat = function(email){
+function openChat(email) {
+  if (!email) {
+    alert("هذا المستخدم ليس لديه بريد إلكتروني مسجل");
+    return;
+  }
   localStorage.setItem("chatReceiver", email);
   if (window.showPage) {
     window.showPage("messages");
   }
-};
+}
+
+window.showSearch = showSearch;
+window.openChat = openChat;
