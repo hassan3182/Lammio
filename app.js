@@ -41,26 +41,20 @@ window.currentUser = user;
     if (window.showPage) {
       window.showPage("home");
     }
-
 onAuthStateChanged(auth, (user) => {
   window.currentUser = user;
 
   if (user) {
-
     if (window.showPage) {
       window.showPage("home");
     }
-
   } else {
-
     window.currentUser = null;
 
     if (window.showLogin) {
       window.showLogin();
     }
-
   }
-
 });
 async function savePost(title, text) {
 if (!auth.currentUser) {
