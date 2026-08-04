@@ -11,6 +11,8 @@ import {
   getFirestore,
   collection,
   addDoc,
+  deleteDoc,
+  doc,
   onSnapshot,
   query,
   orderBy
@@ -56,6 +58,17 @@ async function savePost(title, text) {
   }
 }
 
+async function deletePost(postId) {
+  if (confirm("هل تريد حذف هذا المنشور حقاً؟")) {
+    try {
+      await deleteDoc(doc(db, "posts", postId));
+      alert("تم حذف المنشور بنجاح");
+    } catch (error) {
+      alert("خطأ في الحذف: " + error.message);
+    }
+  }
+}
+
 async function loadPosts() {
   const container = document.getElementById("postsContainer");
   if (!container) return;
@@ -73,25 +86,20 @@ async function loadPosts() {
       const date = new Date(post.createdAt);
 
       container.innerHTML += `
-      <div class="post">
-        <div style="display:flex;align-items:center;gap:12px;">
-          <img
-          src="${post.authorImage || 'https://via.placeholder.com/50'}"
-          style="width:50px;height:50px;border-radius:50%;object-fit:cover;">
-          <div>
-            <h3 style="margin:0;">${post.author}</h3>
-            <small style="color:gray;">
-              ${date.toLocaleDateString()} - ${date.toLocaleTimeString()}
-            </small>
+      <div class="post" id="post-${docSnap.id}">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <img src="${post.authorImage || 'https://via.placeholder.com/50'}" style="width:50px;height:50px;border-radius:50%;object-fit:cover;">
+            <div>
+              <h3 style="margin:0;">${post.author}</h3>
+              <small style="color:gray;">${date.toLocaleDateString()} - ${date.toLocaleTimeString()}</small>
+            </div>
           </div>
+          <button onclick="deletePost('${docSnap.id}')" style="background:none;border:none;cursor:pointer;font-size:18px;">🗑️</button>
         </div>
         <h4>${post.title}</h4>
         <p>${post.text}</p>
-        ${post.image ? `
-        <img
-        src="${post.image}"
-        style="width:100%;max-height:400px;object-fit:cover;border-radius:12px;margin-top:10px;margin-bottom:10px;">
-        ` : ""}
+        ${post.image ? `<img src="${post.image}" style="width:100%;max-height:400px;object-fit:cover;border-radius:12px;margin:10px 0;">` : ""}
         <div class="actions">
           <button onclick="likePost(this)">❤️ <span>0</span></button>
           <button onclick="showComment(this)">💬 تعليق</button>
@@ -209,6 +217,7 @@ export async function logout() {
 // --- 4. إتاحة جميع الدوال لنطاق النافذة (Window Object) ---
 
 window.savePost = savePost;
+window.deletePost = deletePost;
 window.loadPosts = loadPosts;
 window.likePost = likePost;
 window.showComment = showComment;

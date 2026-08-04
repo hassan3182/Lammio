@@ -66,6 +66,29 @@ input, textarea { width:100%; padding:12px; margin:10px 0; border:1px solid #ccc
     if (window.login) window.login(e, p);
   }
 
+  function publishPost() {
+    let title = document.getElementById("title").value;
+    let text = document.getElementById("postText").value;
+    let imageInput = document.getElementById("postImage");
+
+    if(title == "" || text == ""){
+      alert("اكتب عنوانًا ونص المنشور");
+      return;
+    }
+
+    if (imageInput && imageInput.files[0]) {
+      let reader = new FileReader();
+      reader.onload = function(e) {
+        localStorage.setItem("tempPostImage", e.target.result);
+        if(window.savePost) window.savePost(title, text);
+      };
+      reader.readAsDataURL(imageInput.files[0]);
+    } else {
+      localStorage.removeItem("tempPostImage");
+      if(window.savePost) window.savePost(title, text);
+    }
+  }
+
   function showPage(page){
     if (!window.currentUser && sessionStorage.getItem("loggedIn") !== "true"){
         showLogin();
@@ -82,6 +105,8 @@ input, textarea { width:100%; padding:12px; margin:10px 0; border:1px solid #ccc
         <h2>➕ إنشاء منشور</h2>
         <input id="title" placeholder="عنوان المنشور">
         <textarea id="postText" placeholder="بماذا تفكر؟"></textarea>
+        <label style="display:block; margin-top:10px; font-weight:bold;">إرفاق صورة:</label>
+        <input type="file" id="postImage" accept="image/*" style="background:white;">
         <button class="mainButton" onclick="publishPost()">نشر المنشور</button>
         `;
     } else if(page == "messages"){
@@ -100,12 +125,11 @@ input, textarea { width:100%; padding:12px; margin:10px 0; border:1px solid #ccc
   window.showPage = showPage;
   window.handleRegister = handleRegister;
   window.handleLogin = handleLogin;
+  window.publishPost = publishPost;
 
-  // إظهار صفحة الدخول تلقائياً عند الفتح
   showLogin();
 </script>
 
-<!-- تحميل موديولات الجافاسكريبت المربوطة بـ Firebase -->
 <script type="module" src="app.js"></script>
 
 </body>
