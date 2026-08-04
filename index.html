@@ -4,215 +4,275 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Lammio</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     :root {
-      --lammio-blue: #1877f2;
-      --lammio-bg: #f0f2f5;
-      --lammio-card: #ffffff;
-      --lammio-border: #ced0d4;
-      --lammio-text: #050505;
-      --lammio-subtext: #65676b;
+      --lammio-primary: #3b82f6;
+      --lammio-bg: linear-gradient(135deg, #e0e7ff 0%, #f3e8ff 100%);
+      --lammio-glass: rgba(255, 255, 255, 0.65);
+      --lammio-glass-border: rgba(255, 255, 255, 0.8);
+      --lammio-text: #1f2937;
     }
-    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; padding: 0; }
-    body { background-color: var(--lammio-bg); color: var(--lammio-text); padding-top: 90px; padding-bottom: 20px; }
 
-    .top-bar { position: fixed; top: 0; left: 0; right: 0; height: 48px; background: white; display: flex; align-items: center; justify-content: space-between; padding: 0 12px; z-index: 1000; border-bottom: 1px solid var(--lammio-border); }
-    .top-bar .logo { color: var(--lammio-blue); font-size: 24px; font-weight: bold; }
-    .top-bar .header-icons { display: flex; gap: 8px; }
-    .top-bar .header-icons button { background: #e4e6eb; border: none; width: 34px; height: 34px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: var(--lammio-bg);
+      background-attachment: fixed;
+      color: var(--lammio-text);
+      margin: 0;
+      padding-bottom: 70px;
+      min-height: 100vh;
+    }
 
-    .nav-tabs { position: fixed; top: 48px; left: 0; right: 0; height: 42px; background: white; display: flex; border-bottom: 1px solid var(--lammio-border); z-index: 999; }
-    .tab-btn { flex: 1; background: none; border: none; border-bottom: 3px solid transparent; font-size: 18px; color: var(--lammio-subtext); cursor: pointer; display: flex; align-items: center; justify-content: center; }
-    .tab-btn.active { color: var(--lammio-blue); border-bottom-color: var(--lammio-blue); }
+    /* الشريط العلوي الشفاف */
+    header {
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      padding: 10px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--lammio-glass-border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
 
-    .container { max-width: 500px; margin: 0 auto; }
-    .create-post-box { background: var(--lammio-card); padding: 10px 12px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--lammio-border); cursor: pointer; }
-    .create-post-box img { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; }
-    .create-post-box input { flex: 1; border: 1px solid var(--lammio-border); border-radius: 20px; padding: 8px 14px; background: #f0f2f5; outline: none; cursor: pointer; }
+    .logo {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--lammio-primary);
+    }
 
-    .stories-container { display: flex; gap: 8px; padding: 10px; background: white; overflow-x: auto; border-bottom: 1px solid var(--lammio-border); margin-bottom: 8px; }
-    .story-card { min-width: 90px; height: 130px; border-radius: 10px; background: #e4e6eb; position: relative; flex-shrink: 0; overflow: hidden; border: 1px solid var(--lammio-border); }
-    .story-card img { width: 100%; height: 100%; object-fit: cover; }
-    .story-card.add-story { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; background: #f7f8fa; cursor: pointer; }
-    .story-card.add-story .plus-icon { width: 30px; height: 30px; background: var(--lammio-blue); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid white; margin-bottom: 25px; }
-    .story-card.add-story span { position: absolute; bottom: 6px; font-size: 11px; font-weight: bold; }
+    /* شريط الأيقونات العلوي الثاني */
+    .top-sub-nav {
+      background: rgba(255, 255, 255, 0.5);
+      backdrop-filter: blur(8px);
+      display: flex;
+      justify-content: space-around;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--lammio-glass-border);
+      position: sticky;
+      top: 53px;
+      z-index: 99;
+    }
 
-    .post { background: var(--lammio-card); border-bottom: 8px solid var(--lammio-bg); padding: 12px; }
-    .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px; }
-    .menu-item { background: white; padding: 12px; border-radius: 8px; display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--lammio-border); cursor: pointer; }
+    .top-sub-nav button {
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+    }
 
-    .mainButton { width: 100%; background: var(--lammio-blue); color: white; border: none; padding: 10px; border-radius: 6px; font-size: 15px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-    input[type="text"], input[type="password"], textarea { width: 100%; padding: 10px; margin: 6px 0; border: 1px solid var(--lammio-border); border-radius: 6px; outline: none; }
+    .main-container {
+      max-width: 600px;
+      margin: 15px auto;
+      padding: 0 12px;
+    }
+
+    /* كروت المنشورات الزجاجية */
+    .post {
+      background: var(--lammio-glass);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--lammio-glass-border);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    }
+
+    input, textarea {
+      width: 100%;
+      padding: 10px;
+      margin: 6px 0 12px 0;
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      background: rgba(255, 255, 255, 0.5);
+      border-radius: 10px;
+      box-sizing: border-box;
+      font-family: inherit;
+      outline: none;
+    }
+
+    input:focus, textarea:focus {
+      background: rgba(255, 255, 255, 0.9);
+      border-color: var(--lammio-primary);
+    }
+
+    .mainButton {
+      background: var(--lammio-primary);
+      color: white;
+      border: none;
+      padding: 12px;
+      width: 100%;
+      border-radius: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 15px;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+
+    /* الشريط السفلي الشفاف */
+    nav {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-top: 1px solid var(--lammio-glass-border);
+      display: flex;
+      justify-content: space-around;
+      padding: 10px 0;
+      z-index: 100;
+    }
+
+    nav button {
+      background: none;
+      border: none;
+      font-size: 22px;
+      cursor: pointer;
+    }
+
+    .story-card {
+      min-width: 75px;
+      height: 110px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.5);
+      backdrop-filter: blur(6px);
+      border: 1px solid var(--lammio-glass-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+    }
   </style>
 </head>
 <body>
 
-  <div class="top-bar">
+  <header>
     <div class="logo">Lammio</div>
-    <div class="header-icons">
-      <button onclick="showPage('post')"><i class="fa-solid fa-plus"></i></button>
-      <button onclick="showPage('search')"><i class="fa-solid fa-magnifying-glass"></i></button>
-      <button onclick="showPage('menu')"><i class="fa-solid fa-bars"></i></button>
+    <div>
+      <button onclick="logout()" style="background:none; border:none; cursor:pointer; font-weight:bold; color:#e11d48;">🚪 خروج</button>
     </div>
+  </header>
+
+  <!-- الشريط الفرعي العلوي الأنيق -->
+  <div class="top-sub-nav">
+    <button onclick="showPage('home')">🏠</button>
+    <button onclick="showPage('friends')">👥</button>
+    <button onclick="showPage('notifications')">🔔</button>
+    <button onclick="showPage('menu')">☰</button>
   </div>
 
-  <div class="nav-tabs">
-    <button class="tab-btn active" id="tab-home" onclick="showPage('home')"><i class="fa-solid fa-house"></i></button>
-    <button class="tab-btn" id="tab-friends" onclick="showPage('friends')"><i class="fa-solid fa-user-group"></i></button>
-    <button class="tab-btn" id="tab-messages" onclick="showPage('messages')"><i class="fa-brands fa-facebook-messenger"></i></button>
-    <button class="tab-btn" id="tab-notifications" onclick="showPage('notifications')"><i class="fa-solid fa-bell"></i></button>
-    <button class="tab-btn" id="tab-menu" onclick="showPage('menu')"><i class="fa-solid fa-bars"></i></button>
+  <div class="main-container" id="appContent">
+    <!-- المحتوى الديناميكي -->
   </div>
 
-  <div class="container" id="appContent"></div>
-
-  <input type="file" id="storyFileInput" accept="image/*" style="display:none;" onchange="uploadStory(this)">
-  <input type="file" id="profileFileInput" accept="image/*" style="display:none;" onchange="uploadProfilePic(this)">
+  <!-- الشريط السفلي -->
+  <nav>
+    <button onclick="showPage('home')">🏠</button>
+    <button onclick="showPage('post')">➕</button>
+    <button onclick="showPage('friends')">👥</button>
+  </nav>
 
   <script type="module" src="./app.js"></script>
 
   <script>
     function showPage(page) {
-      const content = document.getElementById("appContent");
-      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-      const activeTab = document.getElementById(`tab-${page}`);
-      if(activeTab) activeTab.classList.add('active');
-
-      const userImage = localStorage.getItem("userImage") || "https://via.placeholder.com/40";
-      const userName = localStorage.getItem("userName") || "مستخدم Lammio";
+      let content = document.getElementById("appContent");
+      if (!content) return;
 
       if (page === "home") {
         content.innerHTML = `
-          <div class="create-post-box" onclick="showPage('post')">
-            <img src="${userImage}" />
-            <input type="text" placeholder="بم تفكر في Lammio؟" readonly />
-            <i class="fa-regular fa-image" style="color: #45bd62; font-size: 20px;"></i>
+          <div style="background: rgba(255, 255, 255, 0.5); backdrop-filter: blur(8px); padding: 10px; border-radius: 14px; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--lammio-glass-border);">
+            <div style="width:36px; height:36px; background:#ddd; border-radius:50%;"></div>
+            <div onclick="showPage('post')" style="flex:1; background:rgba(255,255,255,0.7); padding:8px 12px; border-radius:20px; color:#666; cursor:pointer; font-size:14px;">بم تفكر في Lammio؟</div>
           </div>
 
-          <div class="stories-container" id="storiesContainer">
-            <div class="story-card add-story" onclick="document.getElementById('storyFileInput').click()">
-              <div class="plus-icon"><i class="fa-solid fa-plus"></i></div>
-              <span>إنشاء قصة</span>
-            </div>
+          <div id="storiesContainer" style="display:flex; gap:10px; overflow-x:auto; padding-bottom:8px; margin-bottom:12px;">
+            <div class="story-card">➕ قصة</div>
           </div>
-
-          <div id="postsContainer"></div>
+          <div id="postsContainer">جاري تحميل المنشورات...</div>
         `;
         if (window.loadPosts) window.loadPosts();
-        if (window.loadStories) window.loadStories();
       } 
-      else if (page === "friends") {
-        content.innerHTML = `<div style="padding:15px; background:white;"><h3 style="margin-bottom:10px;">الأصدقاء في Lammio</h3><div id="friendsList">جاري تحميل قائمة الأصدقاء...</div></div>`;
-        if (window.loadFriends) window.loadFriends();
-      }
-      else if (page === "notifications") {
-        content.innerHTML = `<div style="padding:15px; background:white;"><h3>الإشعارات</h3><p style="color:var(--lammio-subtext); margin-top:10px;">لا توجد إشعارات جديدة حالياً.</p></div>`;
-      }
-      else if (page === "messages") {
-        content.innerHTML = `<div id="messagesPageContainer"></div>`;
-        if (window.showMessages) window.showMessages();
-      }
-      else if (page === "search") {
-        content.innerHTML = `<div id="searchPageContainer"></div>`;
-        if (window.showSearch) window.showSearch();
-      }
-      else if (page === "menu") {
-        content.innerHTML = `
-          <div style="padding:10px;">
-            <div style="background:white; padding:12px; border-radius:8px; display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; border:1px solid var(--lammio-border);">
-              <div style="display:flex; align-items:center; gap:10px;">
-                <img src="${userImage}" style="width:45px;height:45px;border-radius:50%;object-fit:cover;" />
-                <div>
-                  <h3 style="font-size:15px;">${userName}</h3>
-                  <small style="color:var(--lammio-subtext);">الملف الشخصي</small>
-                </div>
-              </div>
-              <button onclick="document.getElementById('profileFileInput').click()" style="background:#e4e6eb; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:bold;">تغيير الصورة 📷</button>
-            </div>
-
-            <div class="menu-grid">
-              <div class="menu-item" onclick="showPage('messages')"><i class="fa-brands fa-facebook-messenger" style="color:#0084ff;"></i><span>الرسائل</span></div>
-              <div class="menu-item" onclick="showPage('friends')"><i class="fa-solid fa-user-group" style="color:#1877f2;"></i><span>الأصدقاء</span></div>
-              <div class="menu-item" onclick="showPage('post')"><i class="fa-solid fa-pen" style="color:#45bd62;"></i><span>كتابة منشور</span></div>
-              <div class="menu-item"><i class="fa-solid fa-bookmark" style="color:#a855f7;"></i><span>المحفوظات</span></div>
-            </div>
-
-            <button class="mainButton" style="background:#e4e6eb; color:black; margin-top:15px;" onclick="window.logout()">
-              <i class="fa-solid fa-door-open"></i> تسجيل الخروج
-            </button>
-          </div>
-        `;
-      }
       else if (page === "post") {
         content.innerHTML = `
-          <div class="post" style="margin:10px; border-radius:8px;">
-            <h3 style="margin-bottom:10px;">إنشاء منشور جديد</h3>
+          <div class="post">
+            <h3 style="margin-bottom:12px;">إنشاء منشور جديد</h3>
             <input id="title" placeholder="عنوان المنشور">
             <textarea id="postText" rows="4" placeholder="بم تفكر؟"></textarea>
             
-            <div style="background:#f0f2f5; padding:10px; border-radius:8px; margin:10px 0;">
+            <div style="background:rgba(255, 255, 255, 0.4); padding:10px; border-radius:10px; margin:10px 0;">
               <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-                <input type="checkbox" id="isSecret" onchange="document.getElementById('secretPassInput').style.display = this.checked ? 'block' : 'none'">
+                <input type="checkbox" id="isSecret" style="width:auto; margin:0;" onchange="document.getElementById('secretPassInput').style.display = this.checked ? 'block' : 'none'">
                 <strong>🔒 منشور في غرفة الأسرار</strong>
               </label>
               <input type="password" id="secretPassInput" placeholder="كلمة السر للمنشور" style="display:none; margin-top:8px;">
             </div>
 
-            <input type="file" id="postImage" accept="image/*">
-            <button class="mainButton" onclick="publishPost()">نشر في Lammio</button>
+            <label style="display:block; margin:8px 0; font-size:13px; font-weight:bold;">اختر صورة أو فيديو:</label>
+            <input type="file" id="mediaInput" accept="image/*,video/*">
+
+            <button class="mainButton" id="publishBtn" onclick="publishPost()">نشر في Lammio</button>
+          </div>
+        `;
+      } 
+      else if (page === "friends") {
+        content.innerHTML = `
+          <div class="post">
+            <h3>قائمة الأصدقاء</h3>
+            <p>لا توجد إضافات حالياً.</p>
+          </div>
+        `;
+      }
+      else if (page === "notifications") {
+        content.innerHTML = `
+          <div class="post">
+            <h3>الإشعارات</h3>
+            <p>لا توجد إشعارات جديدة.</p>
+          </div>
+        `;
+      }
+      else if (page === "menu") {
+        content.innerHTML = `
+          <div class="post">
+            <h3>القائمة الرئيسية</h3>
+            <button class="mainButton" onclick="logout()" style="background:#e11d48; margin-top:10px;">تسجيل الخروج</button>
           </div>
         `;
       }
     }
 
-    function publishPost() {
+    async function publishPost() {
       let title = document.getElementById("title").value;
       let text = document.getElementById("postText").value;
-      let imageInput = document.getElementById("postImage");
+      let mediaInput = document.getElementById("mediaInput");
       let isSecret = document.getElementById("isSecret") ? document.getElementById("isSecret").checked : false;
       let secretPass = document.getElementById("secretPassInput") ? document.getElementById("secretPassInput").value : "";
+      let btn = document.getElementById("publishBtn");
 
-      if (!title || !text) { alert("يرجى كتابة عنوان ونص المنشور"); return; }
+      if (!title || !text) { 
+        alert("يرجى كتابة عنوان ونص المنشور"); 
+        return; 
+      }
 
-      let save = () => { if (window.savePost) window.savePost(title, text, isSecret, secretPass); };
+      let mediaFile = mediaInput && mediaInput.files[0] ? mediaInput.files[0] : null;
 
-      if (imageInput && imageInput.files[0]) {
-        let reader = new FileReader();
-        reader.onload = function(e) {
-          localStorage.setItem("tempPostImage", e.target.result);
-          save();
-        };
-        reader.readAsDataURL(imageInput.files[0]);
-      } else {
-        localStorage.removeItem("tempPostImage");
-        save();
+      if (btn) {
+        btn.innerText = "جاري ضغط الملف والنشر...";
+        btn.disabled = true;
+      }
+
+      if (window.savePost) {
+        await window.savePost(title, text, isSecret, secretPass, mediaFile);
       }
     }
 
-    function uploadStory(input) {
-      if (input.files && input.files[0]) {
-        let reader = new FileReader();
-        reader.onload = function(e) {
-          if (window.saveStory) window.saveStory(e.target.result);
-        };
-        reader.readAsDataURL(input.files[0]);
-      }
-    }
-
-    function uploadProfilePic(input) {
-      if (input.files && input.files[0]) {
-        let reader = new FileReader();
-        reader.onload = function(e) {
-          localStorage.setItem("userImage", e.target.result);
-          alert("تم تحديث الصورة الشخصية بنجاح!");
-          showPage('menu');
-        };
-        reader.readAsDataURL(input.files[0]);
-      }
-    }
-
-    document.addEventListener("DOMContentLoaded", () => showPage("home"));
+    window.showPage = showPage;
+    window.onload = () => showPage("home");
   </script>
 </body>
 </html>

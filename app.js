@@ -21,9 +21,6 @@ import {
   orderBy
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-import { showSearch } from "./search.js";
-import { showMessages } from "./messages.js";
-
 const firebaseConfig = {
   apiKey: "AIzaSyAR-rrGnNo0XnblSHJw6a0FerAe_g-Qd9Y",
   authDomain: "lammio-9335b.firebaseapp.com",
@@ -39,14 +36,31 @@ const auth = getAuth(app);
 
 const ADMIN_EMAIL = "hassanasaad212@gmail.com";
 
-// --- 1. إدارة المنشورات ---
-
-async function savePost(title, text, isSecret = false, secretPass = "") {
+// دالة حفظ المنشور مع دعم ضغط الصور والفيديوهات لتتوافق مع حدود قاعدة البيانات
+async function savePost(title, text, isSecret = false, secretPass = "", mediaFile = null) {
   try {
+    let mediaData = "";
+    let mediaType = "none";
+
+    if (mediaFile) {
+      if (mediaFile.type.startsWith("image/")) {
+        mediaType = "image";
+        mediaData = await compressImage(mediaFile);
+      } else if (mediaFile.type.startsWith("video/")) {
+        if (mediaFile.size > 2 * 1024 * 1024) {
+          alert("حجم الفيديو كبير جداً للتخزين المباشر (الحد الأقصى 2 ميجابايت). يرجى اختيار فيديو أقصر أو أصغر حجماً.");
+          return;
+        }
+        mediaType = "video";
+        mediaData = await fileToDataURL(mediaFile);
+      }
+    }
+
     await addDoc(collection(db, "posts"), {
       title: title,
       text: text,
-      image: localStorage.getItem("tempPostImage") || "",
+      mediaData: mediaData,
+      mediaType: mediaType,
       author: localStorage.getItem("userName") || "مستخدم Lammio",
       authorEmail: auth.currentUser ? auth.currentUser.email : "مجهول",
       authorImage: localStorage.getItem("userImage") || "https://via.placeholder.com/40",
@@ -55,15 +69,54 @@ async function savePost(title, text, isSecret = false, secretPass = "") {
       isSecret: isSecret,
       secretPass: secretPass
     });
-    localStorage.removeItem("tempPostImage");
+
     if (window.showPage) window.showPage("home");
   } catch (error) {
-    alert(error.message);
+    alert("خطأ أثناء النشر: " + error.message);
   }
 }
 
+// دالة لضغط الصور تلقائياً مهما كان حجمها الأصلي كبير
+function compressImage(file) {
+  return new Promise((resolve) => {
+    let reader = new FileReader();
+    reader.onload = function(e) {
+      let img = new Image();
+      img.src = e.target.result;
+      img.onload = function() {
+        let canvas = document.createElement("canvas");
+        let ctx = canvas.getContext("2d");
+        
+        let maxWidth = 800; // تحديد عرض مناسب
+        let scale = maxWidth / img.width;
+        
+        if (scale < 1) {
+          canvas.width = maxWidth;
+          canvas.height = img.height * scale;
+        } else {
+          canvas.width = img.width;
+          canvas.height = img.height;
+        }
+
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        // ضغط بجودة مقبولة لتخزينها مباشرة دون أخطاء
+        resolve(canvas.toDataURL("image/jpeg", 0.5));
+      };
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function fileToDataURL(file) {
+  return new Promise((resolve) => {
+    let reader = new FileReader();
+    reader.onload = (e) => resolve(e.target.result);
+    reader.readAsDataURL(file);
+  });
+}
+
 async function deletePost(postId) {
-  if (confirm("هل تريد حذف هذا المنشور من Lammio؟")) {
+  if (confirm("هل تريد حذف هذا المنشور؟")) {
     try {
       await deleteDoc(doc(db, "posts", postId));
     } catch (error) {
@@ -91,28 +144,34 @@ async function loadPosts() {
       const isLiked = likesArray.includes(currentUserEmail);
       const isOwner = post.authorEmail === currentUserEmail;
 
-      let postContentHTML = "";
+      let mediaHTML = "";
+      if (post.mediaType === "video" && post.mediaData) {
+        mediaHTML = `<video controls style="width:100%; max-height:400px; border-radius:12px; margin:10px 0;"><source src="${post.mediaData}">متصفحك لا يدعم الفيديو</video>`;
+      } else if (post.mediaData || post.image) {
+        let imgSrc = post.mediaData || post.image;
+        mediaHTML = `<img src="${imgSrc}" style="width:100%; max-height:400px; object-fit:cover; border-radius:12px; margin:10px 0;">`;
+      }
 
+      let postContentHTML = "";
       if (post.isSecret && !isAdmin && !isOwner) {
         postContentHTML = `
-          <div id="secret-box-${docSnap.id}" style="background:#2d3748; color:white; padding:15px; border-radius:10px; text-align:center; margin:10px 0;">
+          <div id="secret-box-${docSnap.id}" style="background:#2d3748; color:white; padding:15px; border-radius:12px; text-align:center; margin:10px 0;">
             <h3>🔒 منشور سرّي</h3>
-            <p style="font-size:13px; color:#cbd5e0;">محمي بكلمة سر</p>
-            <input type="password" id="pass-input-${docSnap.id}" placeholder="أدخل كلمة السر" style="width:80%; margin:8px 0; padding:6px; border-radius:6px; border:1px solid #ccc;">
+            <input type="password" id="pass-input-${docSnap.id}" placeholder="أدخل كلمة السر" style="width:80%; margin:6px 0; padding:8px; border-radius:8px; border:1px solid #ccc;">
             <button class="mainButton" style="width:auto; padding:6px 15px; background:#e11d48;" onclick="unlockSecret('${docSnap.id}', '${post.secretPass}')">كشف 🔓</button>
           </div>
           <div id="secret-content-${docSnap.id}" style="display:none;">
             <h4 style="margin-top:6px; font-size:15px;">${post.title}</h4>
-            <p style="font-size:14px; margin-top:4px; line-height:1.4;">${post.text}</p>
-            ${post.image ? `<img src="${post.image}" style="width:100%;max-height:400px;object-fit:cover;border-radius:8px;margin:10px 0;">` : ""}
+            <p style="font-size:14px; margin-top:4px;">${post.text}</p>
+            ${mediaHTML}
           </div>
         `;
       } else {
         postContentHTML = `
           ${post.isSecret ? `<span style="background:#e11d48; color:white; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:bold;">🔒 سرّي</span>` : ""}
           <h4 style="margin-top:6px; font-size:15px;">${post.title}</h4>
-          <p style="font-size:14px; margin-top:4px; line-height:1.4;">${post.text}</p>
-          ${post.image ? `<img src="${post.image}" style="width:100%;max-height:400px;object-fit:cover;border-radius:8px;margin:10px 0;">` : ""}
+          <p style="font-size:14px; margin-top:4px;">${post.text}</p>
+          ${mediaHTML}
         `;
       }
 
@@ -123,27 +182,18 @@ async function loadPosts() {
             <img src="${post.authorImage || 'https://via.placeholder.com/40'}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
             <div>
               <h3 style="margin:0; font-size:14px; font-weight:bold;">${post.author}</h3>
-              <small style="color:#65676B; font-size:11px;">${date.toLocaleDateString()} - ${date.toLocaleTimeString()}</small>
+              <small style="color:#636e72; font-size:11px;">${date.toLocaleDateString()}</small>
             </div>
           </div>
-          ${(isOwner || isAdmin) ? `<button onclick="deletePost('${docSnap.id}')" style="background:none;border:none;cursor:pointer;font-size:16px;color:#65676B;">🗑️</button>` : ""}
+          ${(isOwner || isAdmin) ? `<button onclick="deletePost('${docSnap.id}')" style="background:none;border:none;cursor:pointer;font-size:16px;color:#636e72;">🗑️</button>` : ""}
         </div>
         ${postContentHTML}
-        
-        <div style="display:flex; justify-content:space-between; font-size:12px; color:#65676B; padding: 6px 0; border-bottom: 1px solid #e5e5e5; margin-bottom: 4px;">
-          <span>❤️ ${likesCount} تفاعل</span>
-        </div>
-
-        <div class="actions" style="display:flex; justify-content:space-around; padding-top:4px;">
-          <button onclick="toggleLike('${docSnap.id}')" style="background:none;border:none;cursor:pointer;font-size:14px;font-weight:600;color:${isLiked ? '#e11d48' : '#65676B'}">
-            ${isLiked ? "💖 أعجبني" : "❤️ إعجاب"}
-          </button>
-          <button onclick="showComment(this)" style="background:none;border:none;cursor:pointer;font-size:14px;font-weight:600;color:#65676B;">💬 تعليق</button>
-          <button onclick="sharePost(this)" style="background:none;border:none;cursor:pointer;font-size:14px;font-weight:600;color:#65676B;">↗ مشاركة</button>
+        <div style="display:flex; justify-content:space-around; padding-top:4px; border-top:1px solid #eee;">
+          <button onclick="toggleLike('${docSnap.id}')" style="background:none;border:none;cursor:pointer;color:${isLiked ? '#e11d48' : '#636e72'}">❤️ ${likesCount}</button>
+          <button onclick="showComment(this)" style="background:none;border:none;cursor:pointer;color:#636e72;">💬 تعليق</button>
         </div>
         <div class="comments"></div>
-      </div>
-      `;
+      </div>`;
     });
   });
 }
@@ -192,88 +242,16 @@ function addComment(button) {
   let text = input.value.trim();
   if (text === "") return;
   let commentList = parent.nextElementSibling;
-  let author = localStorage.getItem("userName") || "مستخدم Lammio";
-  commentList.innerHTML += `<p style="background:#f0f2f5; padding:6px 12px; border-radius:12px; margin-top:5px; font-size:13px;"><strong>💬 ${author}:</strong> ${text}</p>`;
+  let author = localStorage.getItem("userName") || "مستخدم";
+  commentList.innerHTML += `<p style="background:rgba(108, 92, 231, 0.05); padding:6px; border-radius:8px; margin-top:4px; font-size:13px;"><strong>${author}:</strong> ${text}</p>`;
   input.value = "";
 }
-
-function sharePost(button) {
-  const post = button.closest(".post");
-  const title = post.querySelector("h4") ? post.querySelector("h4").innerText : "";
-  const text = post.querySelector("p") ? post.querySelector("p").innerText : "";
-  const shareText = `${title}\n\n${text}\n\nعبر Lammio:\nhttps://san3182.github.io/Lammio/`;
-  if (navigator.share) navigator.share({ title: title, text: shareText });
-  else { navigator.clipboard.writeText(shareText); alert("تم نسخ رابط المنشور!"); }
-}
-
-// --- 2. إدارة القصص (Stories) ---
-
-async function saveStory(imageData) {
-  try {
-    await addDoc(collection(db, "stories"), {
-      image: imageData,
-      author: localStorage.getItem("userName") || "مستخدم Lammio",
-      createdAt: new Date().toISOString()
-    });
-    alert("تم نشر قصتك بنجاح!");
-    if (window.showPage) window.showPage("home");
-  } catch (e) { alert(e.message); }
-}
-
-async function loadStories() {
-  const container = document.getElementById("storiesContainer");
-  if (!container) return;
-  const q = query(collection(db, "stories"), orderBy("createdAt", "desc"));
-  onSnapshot(q, (snapshot) => {
-    const addCard = container.querySelector('.add-story').outerHTML;
-    container.innerHTML = addCard;
-    snapshot.forEach((docSnap) => {
-      const story = docSnap.data();
-      container.innerHTML += `
-        <div class="story-card" onclick="alert('قصة ${story.author}')">
-          <img src="${story.image}">
-          <span style="position:absolute; bottom:4px; right:4px; color:white; font-size:10px; font-weight:bold; text-shadow:1px 1px 2px black;">${story.author}</span>
-        </div>
-      `;
-    });
-  });
-}
-
-// --- 3. إدارة الأصدقاء ---
-
-async function loadFriends() {
-  const container = document.getElementById("friendsList");
-  if (!container) return;
-  try {
-    const querySnapshot = await getDocs(collection(db, "posts"));
-    const authors = new Set();
-    querySnapshot.forEach((doc) => {
-      const data = doc.data();
-      if (data.author) authors.add(data.author);
-    });
-
-    container.innerHTML = "";
-    authors.forEach((name) => {
-      container.innerHTML += `
-        <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid #eee;">
-          <div style="display:flex; align-items:center; gap:10px;">
-            <img src="https://via.placeholder.com/40" style="border-radius:50%; width:40px; height:40px;" />
-            <strong>${name}</strong>
-          </div>
-          <button style="background:#1877f2; color:white; border:none; padding:6px 12px; border-radius:6px; font-weight:bold; cursor:pointer;" onclick="this.innerText='تم الطلب'; this.disabled=true;">إضافة صديق</button>
-        </div>
-      `;
-    });
-  } catch (e) { container.innerHTML = "تعذر تحميل القائمة."; }
-}
-
-// --- 4. المصادقة ---
 
 export async function register(email, password) {
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     sessionStorage.setItem("loggedIn", "true");
-    alert("مرحباً بك في Lammio!");
+    localStorage.setItem("userName", email.split("@")[0]);
     if (window.showPage) window.showPage("home");
     return userCredential.user;
   } catch (error) { alert(error.message); }
@@ -283,17 +261,19 @@ export async function login(email, password) {
   try {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     sessionStorage.setItem("loggedIn", "true");
-    alert("تم تسجيل الدخول إلى Lammio");
+    localStorage.setItem("userName", email.split("@")[0]);
     if (window.showPage) window.showPage("home");
     return userCredential.user;
   } catch (error) { alert(error.message); }
 }
 
 export async function logout() {
-  await signOut(auth);
-  sessionStorage.removeItem("loggedIn");
-  alert("تم تسجيل الخروج");
-  if (window.showLogin) window.showLogin();
+  try {
+    await signOut(auth);
+    sessionStorage.removeItem("loggedIn");
+    if (window.showLogin) window.showLogin();
+    else window.location.reload();
+  } catch (error) { alert(error.message); }
 }
 
 window.savePost = savePost;
@@ -303,10 +283,6 @@ window.unlockSecret = unlockSecret;
 window.toggleLike = toggleLike;
 window.showComment = showComment;
 window.addComment = addComment;
-window.sharePost = sharePost;
-window.saveStory = saveStory;
-window.loadStories = loadStories;
-window.loadFriends = loadFriends;
 window.register = register;
 window.login = login;
 window.logout = logout;
