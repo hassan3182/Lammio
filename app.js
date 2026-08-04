@@ -114,40 +114,45 @@ async function loadPosts() {
             <button class="mainButton" style="width:auto; padding:6px 15px; background:#e11d48;" onclick="unlockSecret('${docSnap.id}', '${post.secretPass}')">كشف السر 🔓</button>
           </div>
           <div id="secret-content-${docSnap.id}" style="display:none;">
-            <h4>${post.title}</h4>
-            <p>${post.text}</p>
-            ${post.image ? `<img src="${post.image}" style="width:100%;max-height:400px;object-fit:cover;border-radius:12px;margin:10px 0;">` : ""}
+            <h4 style="margin-top:6px; font-size:15px;">${post.title}</h4>
+            <p style="font-size:14px; margin-top:4px; line-height:1.4;">${post.text}</p>
+            ${post.image ? `<img src="${post.image}" style="width:100%;max-height:400px;object-fit:cover;border-radius:8px;margin:10px 0;">` : ""}
           </div>
         `;
       } else {
         // العرض العادي أو العرض الكامل للأدمن وصاحب المنشور
         postContentHTML = `
-          ${post.isSecret ? `<span style="background:#e11d48; color:white; padding:3px 8px; border-radius:6px; font-size:11px; font-weight:bold;">🔒 سرّي (معروض لك بصفتك ${isAdmin ? 'الأدمن' : 'صاحب المنشور'})</span>` : ""}
-          <h4 style="margin-top:6px;">${post.title}</h4>
-          <p>${post.text}</p>
-          ${post.image ? `<img src="${post.image}" style="width:100%;max-height:400px;object-fit:cover;border-radius:12px;margin:10px 0;">` : ""}
+          ${post.isSecret ? `<span style="background:#e11d48; color:white; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:bold;">🔒 سرّي</span>` : ""}
+          <h4 style="margin-top:6px; font-size:15px;">${post.title}</h4>
+          <p style="font-size:14px; margin-top:4px; line-height:1.4;">${post.text}</p>
+          ${post.image ? `<img src="${post.image}" style="width:100%;max-height:400px;object-fit:cover;border-radius:8px;margin:10px 0;">` : ""}
         `;
       }
 
       container.innerHTML += `
       <div class="post" id="post-${docSnap.id}">
-        <div style="display:flex;align-items:center;justify-content:space-between;">
-          <div style="display:flex;align-items:center;gap:12px;">
-            <img src="${post.authorImage || 'https://via.placeholder.com/50'}" style="width:50px;height:50px;border-radius:50%;object-fit:cover;">
+        <div class="post-header">
+          <div class="post-user">
+            <img src="${post.authorImage || 'https://via.placeholder.com/50'}">
             <div>
-              <h3 style="margin:0;">${post.author}</h3>
-              <small style="color:gray;">${date.toLocaleDateString()} - ${date.toLocaleTimeString()}</small>
+              <h3 style="margin:0; font-size:14px;">${post.author}</h3>
+              <small style="color:var(--fb-subtext); font-size:11px;">${date.toLocaleDateString()} • <i class="fa-solid fa-earth-americas"></i></small>
             </div>
           </div>
-          ${(isOwner || isAdmin) ? `<button onclick="deletePost('${docSnap.id}')" style="background:none;border:none;cursor:pointer;font-size:18px;">🗑️</button>` : ""}
+          ${(isOwner || isAdmin) ? `<button onclick="deletePost('${docSnap.id}')" style="background:none;border:none;cursor:pointer;color:var(--fb-subtext);"><i class="fa-solid fa-ellipsis"></i></button>` : ""}
         </div>
         ${postContentHTML}
-        <div class="actions">
-          <button onclick="toggleLike('${docSnap.id}')" style="background:none;border:none;cursor:pointer;font-size:16px;">
-            ${isLiked ? "💖" : "❤️"} <span>${likesCount}</span>
+        
+        <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--fb-subtext); padding: 4px 0;">
+          <span>👍 ${likesCount}</span>
+        </div>
+
+        <div class="post-actions">
+          <button onclick="toggleLike('${docSnap.id}')" style="color: ${isLiked ? 'var(--fb-blue)' : 'var(--fb-subtext)'};">
+            <i class="${isLiked ? 'fa-solid fa-thumbs-up' : 'fa-regular fa-thumbs-up'}"></i> أعجبني
           </button>
-          <button onclick="showComment(this)">💬 تعليق</button>
-          <button onclick="sharePost(this)">↗ مشاركة</button>
+          <button onclick="showComment(this)"><i class="fa-regular fa-message"></i> تعليق</button>
+          <button onclick="sharePost(this)"><i class="fa-regular fa-share-from-square"></i> مشاركة</button>
         </div>
         <div class="comments"></div>
       </div>
