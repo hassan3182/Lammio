@@ -13,6 +13,10 @@ import {
   addDoc,
   deleteDoc,
   doc,
+  updateDoc,
+  arrayUnion,
+  arrayRemove,
+  getDoc,
   onSnapshot,
   query,
   orderBy
@@ -34,9 +38,12 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-// --- 1. إدارة المنشورات ---
+// --- تحديد بريد الأدمن (صاحب التطبيق والتحكم الكامل) ---
+const ADMIN_EMAIL = "hassanasaad212@gmail.com";
 
-async function savePost(title, text) {
+// --- 1. إدارة المنشورات وغرفة الأسرار ---
+
+async function savePost(title, text, isSecret = false, secretPass = "") {
   try {
     await addDoc(collection(db, "posts"), {
       title: title,
@@ -45,7 +52,10 @@ async function savePost(title, text) {
       author: localStorage.getItem("userName") || "مستخدم",
       authorEmail: auth.currentUser ? auth.currentUser.email : "مجهول",
       authorImage: localStorage.getItem("userImage") || "",
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      likes: [],
+      isSecret: isSecret,
+      secretPass: secretPass
     });
 
     localStorage.removeItem("tempPostImage");
@@ -80,10 +90,44 @@ async function loadPosts() {
 
   onSnapshot(q, (snapshot) => {
     container.innerHTML = "";
+    const currentUserEmail = auth.currentUser ? auth.currentUser.email : "";
+    const isAdmin = currentUserEmail === ADMIN_EMAIL;
 
     snapshot.forEach((docSnap) => {
       const post = docSnap.data();
       const date = new Date(post.createdAt);
+
+      const likesArray = post.likes || [];
+      const likesCount = likesArray.length;
+      const isLiked = likesArray.includes(currentUserEmail);
+      const isOwner = post.authorEmail === currentUserEmail;
+
+      let postContentHTML = "";
+
+      // إذا كان المنشور سرياً والمستخدم ليس الأدمن أو صاحب المنشور
+      if (post.isSecret && !isAdmin && !isOwner) {
+        postContentHTML = `
+          <div id="secret-box-${docSnap.id}" style="background:#2d3748; color:white; padding:15px; border-radius:10px; text-align:center; margin:10px 0;">
+            <h3>🔒 منشور سرّي مغلق</h3>
+            <p style="font-size:13px; color:#cbd5e0;">هذا المحتوى محمي بكلمة سر</p>
+            <input type="password" id="pass-input-${docSnap.id}" placeholder="أدخل كلمة السر لرؤية المحتوى" style="width:80%; margin:8px 0; padding:6px; border-radius:6px; border:1px solid #ccc;">
+            <button class="mainButton" style="width:auto; padding:6px 15px; background:#e11d48;" onclick="unlockSecret('${docSnap.id}', '${post.secretPass}')">كشف السر 🔓</button>
+          </div>
+          <div id="secret-content-${docSnap.id}" style="display:none;">
+            <h4>${post.title}</h4>
+            <p>${post.text}</p>
+            ${post.image ? `<img src="${post.image}" style="width:100%;max-height:400px;object-fit:cover;border-radius:12px;margin:10px 0;">` : ""}
+          </div>
+        `;
+      } else {
+        // العرض العادي أو العرض الكامل للأدمن وصاحب المنشور
+        postContentHTML = `
+          ${post.isSecret ? `<span style="background:#e11d48; color:white; padding:3px 8px; border-radius:6px; font-size:11px; font-weight:bold;">🔒 سرّي (معروض لك بصفتك ${isAdmin ? 'الأدمن' : 'صاحب المنشور'})</span>` : ""}
+          <h4 style="margin-top:6px;">${post.title}</h4>
+          <p>${post.text}</p>
+          ${post.image ? `<img src="${post.image}" style="width:100%;max-height:400px;object-fit:cover;border-radius:12px;margin:10px 0;">` : ""}
+        `;
+      }
 
       container.innerHTML += `
       <div class="post" id="post-${docSnap.id}">
@@ -95,13 +139,13 @@ async function loadPosts() {
               <small style="color:gray;">${date.toLocaleDateString()} - ${date.toLocaleTimeString()}</small>
             </div>
           </div>
-          <button onclick="deletePost('${docSnap.id}')" style="background:none;border:none;cursor:pointer;font-size:18px;">🗑️</button>
+          ${(isOwner || isAdmin) ? `<button onclick="deletePost('${docSnap.id}')" style="background:none;border:none;cursor:pointer;font-size:18px;">🗑️</button>` : ""}
         </div>
-        <h4>${post.title}</h4>
-        <p>${post.text}</p>
-        ${post.image ? `<img src="${post.image}" style="width:100%;max-height:400px;object-fit:cover;border-radius:12px;margin:10px 0;">` : ""}
+        ${postContentHTML}
         <div class="actions">
-          <button onclick="likePost(this)">❤️ <span>0</span></button>
+          <button onclick="toggleLike('${docSnap.id}')" style="background:none;border:none;cursor:pointer;font-size:16px;">
+            ${isLiked ? "💖" : "❤️"} <span>${likesCount}</span>
+          </button>
           <button onclick="showComment(this)">💬 تعليق</button>
           <button onclick="sharePost(this)">↗ مشاركة</button>
         </div>
@@ -112,20 +156,45 @@ async function loadPosts() {
   });
 }
 
+function unlockSecret(postId, correctPassword) {
+  const input = document.getElementById(`pass-input-${postId}`);
+  if (input && input.value === correctPassword) {
+    document.getElementById(`secret-box-${postId}`).style.display = "none";
+    document.getElementById(`secret-content-${postId}`).style.display = "block";
+  } else {
+    alert("كلمة السر خاطئة! ❌");
+  }
+}
+
 // --- 2. تفاعلات الأزرار (إعجاب، تعليق، مشاركة) ---
 
-function likePost(button) {
-  let span = button.querySelector("span");
-  let count = Number(span.innerText);
+async function toggleLike(postId) {
+  if (!auth.currentUser) {
+    alert("يجب تسجيل الدخول للإعجاب بالمنشور");
+    return;
+  }
 
-  if (button.dataset.liked === "true") {
-    count--;
-    button.dataset.liked = "false";
-    button.innerHTML = "❤️ <span>" + count + "</span>";
-  } else {
-    count++;
-    button.dataset.liked = "true";
-    button.innerHTML = "💖 <span>" + count + "</span>";
+  const currentUserEmail = auth.currentUser.email;
+  const postRef = doc(db, "posts", postId);
+
+  try {
+    const postSnap = await getDoc(postRef);
+    if (!postSnap.exists()) return;
+
+    const postData = postSnap.data();
+    const likes = postData.likes || [];
+
+    if (likes.includes(currentUserEmail)) {
+      await updateDoc(postRef, {
+        likes: arrayRemove(currentUserEmail)
+      });
+    } else {
+      await updateDoc(postRef, {
+        likes: arrayUnion(currentUserEmail)
+      });
+    }
+  } catch (error) {
+    console.error("خطأ في تحديث الإعجاب:", error);
   }
 }
 
@@ -219,7 +288,8 @@ export async function logout() {
 window.savePost = savePost;
 window.deletePost = deletePost;
 window.loadPosts = loadPosts;
-window.likePost = likePost;
+window.unlockSecret = unlockSecret;
+window.toggleLike = toggleLike;
 window.showComment = showComment;
 window.addComment = addComment;
 window.sharePost = sharePost;
