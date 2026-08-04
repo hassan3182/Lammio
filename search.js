@@ -70,4 +70,9 @@ onclick="window.openChat('${user.email}')">
 
 }
 
-window.showSearch=showSearch;
+window.showSearch = showSearch;
+
+window.openChat = function(email){
+    document.getElementById("receiverEmail")?.value = email;
+    showPage("messages");
+};

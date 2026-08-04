@@ -223,11 +223,19 @@ function showPage(page){
 
     }
 
-    else if(page=="messages"){
+    else if(page=="search"){
 
-        showMessages();
+    if(window.showSearch){
+
+        window.showSearch();
+
+    }else{
+
+        alert("search.js لم يتم تحميله");
 
     }
+
+}
 
     else if(page=="profile"){
 
