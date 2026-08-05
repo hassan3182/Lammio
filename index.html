@@ -384,8 +384,8 @@
                 <button class="mainButton" onclick="saveProfileChanges()">حفظ التعديلات</button>
               ` : `
                 <div style="display: flex; gap: 10px; margin-top: 15px;">
-                  <button class="danger-btn" style="flex:1; padding: 12px;" onclick="blockUser('${userId}')">🚫 حظر المستخدم</button>
-                  <button class="secondaryButton" style="flex:1; margin-top:0;" onclick="reportUserModal('${userId}')">⚠️ إبلاغ</button>
+                  <button class="danger-btn" style="flex:1; padding: 12px;" onclick="blockUserPersonal('${userId}')">🚫 حظر</button>
+                  <button class="secondaryButton" style="flex:1; margin-top:0;" onclick="reportUserAction('${userId}')">⚠️ إبلاغ</button>
                 </div>
               `}
             </div>
@@ -488,26 +488,6 @@
       if (window.updateProfile) {
         await window.updateProfile(name, phone, phoneVisibility, avatarFile);
         showPage("menu");
-      }
-    }
-
-    async function blockUser(userId) {
-      if (confirm("هل أنت متأكد من حظر هذا المستخدم؟")) {
-        if (window.handleBlockUser) {
-          await window.handleBlockUser(userId);
-          alert("تم حظر المستخدم بنجاح.");
-          showPage("home");
-        }
-      }
-    }
-
-    async function reportUserModal(userId) {
-      let reason = prompt("يرجى كتابة سبب الإبلاغ عن هذا المستخدم:");
-      if (reason && reason.trim() !== "") {
-        if (window.submitUserReport) {
-          await window.submitUserReport(userId, reason);
-          alert("تم إرسال البلاغ إلى الإدارة بنجاح.");
-        }
       }
     }
 

@@ -44,7 +44,6 @@ export function checkIsAdmin() {
   return auth.currentUser.email === ADMIN_EMAIL;
 }
 
-// دالة مخصصة بديلة لـ alert لتفادي ظهور localhost
 function showCustomAlert(message) {
   let modal = document.getElementById("customModalOverlay");
   if (!modal) {
@@ -59,14 +58,13 @@ function showCustomAlert(message) {
     `;
     document.body.appendChild(modal);
   }
-  document.getElementById("customModalTextinnerText" || "customModalText").innerText = message;
+  document.getElementById("customModalText").innerText = message;
   document.getElementById("customModalOkBtn").onclick = () => {
     modal.style.display = "none";
   };
   modal.style.display = "flex";
 }
 
-// دالة مخصصة بديلة لـ confirm وتفادي ظهور localhost مع الحفاظ على النص العربي
 function showCustomConfirm(message, onConfirm) {
   let modal = document.getElementById("customConfirmOverlay");
   if (!modal) {
@@ -109,14 +107,8 @@ onAuthStateChanged(auth, async (user) => {
       return;
     }
     sessionStorage.setItem("loggedIn", "true");
-
-    // إظهار زر البلاغات في القائمة الجانبية حصراً للأدمن
-    if (adminReportsBtn) {
-      adminReportsBtn.style.display = (user.email === ADMIN_EMAIL) ? "block" : "none";
-    }
   } else {
     sessionStorage.removeItem("loggedIn");
-    if (adminReportsBtn) adminReportsBtn.style.display = "none";
   }
 });
 
@@ -192,11 +184,14 @@ export async function resetPassword(identifier) {
   }
 }
 
-export async function getUserProfile() {
-  if (!auth.currentUser) return {};
-  let userDoc = await getDoc(doc(db, "users", auth.currentUser.uid));
+export async function getUserProfile(userId = null) {
+  let targetId = userId || (auth.currentUser ? auth.currentUser.uid : null);
+  if (!targetId) return {};
+  let userDoc = await getDoc(doc(db, "users", targetId));
   if (userDoc.exists()) {
-    return userDoc.data();
+    let data = userDoc.data();
+    data.currentUserId = auth.currentUser ? auth.currentUser.uid : "";
+    return data;
   }
   return { name: "مستخدم Lammio", phone: "", phoneVisibility: "private", avatar: "", blockedUsers: [] };
 }
@@ -293,38 +288,18 @@ export async function savePost(title, text, isSecret, secretPass, mediaFile) {
   }
 }
 
-// دالة الانتقال لملف المستخدم الآخر وإظهار خيارات الحظر والإبلاغ
-window.openUserProfileView = async function(targetUserId, targetUserName) {
-  let content = document.getElementById("appContent");
-  if (!content) return;
-
-  content.innerHTML = `<p style="text-align:center;">جاري تحميل الملف الشخصي...</p>`;
-
-  try {
-    let uDoc = await getDoc(doc(db, "users", targetUserId));
-    let uData = uDoc.exists() ? uDoc.data() : {};
-    let uAvatar = uData.avatar || "https://via.placeholder.com/80";
-
-    content.innerHTML = `
-      <button style="background:transparent; border:none; color:var(--lammio-primary); font-weight:bold; cursor:pointer; margin-bottom:10px;" onclick="showPage('home')">← العودة للرئيسية</button>
-      <div style="background:white; padding:20px; border-radius:12px; text-align:center; box-shadow:0 2px 8px rgba(0,0,0,0.05);">
-        <img src="${uAvatar}" style="width:80px; height:80px; border-radius:50%; object-fit:cover; margin-bottom:10px;">
-        <h2>${uData.name || targetUserName || "مستخدم"}</h2>
-        <div style="display:flex; justify-content:center; gap:10px; margin-top:20px;">
-          <button style="background:#f59e0b; color:white; border:none; padding:8px 16px; border-radius:8px; cursor:pointer; font-weight:bold;" onclick="reportUserAction('${targetUserId}')">🚨 إبلاغ</button>
-          <button style="background:#dc2626; color:white; border:none; padding:8px 16px; border-radius:8px; cursor:pointer; font-weight:bold;" onclick="blockUserPersonal('${targetUserId}')">🚫 حظر المستخدم</button>
-        </div>
-      </div>
-    `;
-  } catch (e) {
-    content.innerHTML = `<p style="text-align:center; color:red;">خطأ في تحميل الملف الشخصي.</p>`;
+// عرض الملف الشخصي لمستخدم آخر مع زر الحظر والإبلاغ المنفصلين
+window.openUserProfileView = function(targetUserId, targetUserName) {
+  if (window.showPage) {
+    window.showPage("profile", targetUserId);
   }
 };
 
+// دالة الإبلاغ فقط (ترسل شكوى للأدمن دون حظر مباشر)
 window.reportUserAction = function(targetUserId) {
-  let reason = prompt("اكتب سبب الإبلاغ:");
-  if (reason) {
-    showCustomConfirm("هل أنت متأكد من إرسال هذا البلاغ للأدمن وحظر المستخدم نهائياً؟", async (confirmed) => {
+  let reason = prompt("يرجى كتابة سبب الإبلاغ عن هذا المستخدم:");
+  if (reason && reason.trim() !== "") {
+    showCustomConfirm("هل أنت متأكد من إرسال هذا البلاغ إلى الإدارة؟", async (confirmed) => {
       if (confirmed) {
         try {
           await addDoc(collection(db, "reports"), {
@@ -333,11 +308,7 @@ window.reportUserAction = function(targetUserId) {
             reason: reason,
             createdAt: serverTimestamp()
           });
-          // حظر المستخدم نهائياً عبر تحديث حقل isBanned للأدمن
-          await updateDoc(doc(db, "users", targetUserId), {
-            isBanned: true
-          });
-          showCustomAlert("تم إرسال البلاغ إلى الأدمن وحظر المستخدم من التطبيق بنجاح.");
+          showCustomAlert("تم إرسال البلاغ إلى الإدارة بنجاح.");
           window.showPage("home");
         } catch (err) {
           showCustomAlert("حدث خطأ أثناء إرسال البلاغ.");
@@ -347,56 +318,29 @@ window.reportUserAction = function(targetUserId) {
   }
 };
 
-// واجهة لوحة تحكم الأدمن لاستقبال البلاغات (تفتح من زر البلاغات في القائمة الجانبية)
-window.openAdminReportsPage = async function() {
-  if (!checkIsAdmin()) {
-    showCustomAlert("عذراً، هذه الصفحة مخصصة للأدمن فقط.");
-    return;
-  }
-
-  let content = document.getElementById("appContent");
-  if (!content) return;
-
-  content.innerHTML = `<p style="text-align:center;">جاري تحميل البلاغات...</p>`;
-
-  try {
-    const q = query(collection(db, "reports"), orderBy("createdAt", "desc"));
-    const querySnapshot = await getDocs(q);
-
-    let html = `
-      <button style="background:transparent; border:none; color:var(--lammio-primary); font-weight:bold; cursor:pointer; margin-bottom:10px;" onclick="showPage('home')">← العودة للرئيسية</button>
-      <h3 style="margin-bottom:15px; color:#dc2626;">🚨 لوحة تحكم الأدمن - البلاغات الواردة</h3>
-    `;
-
-    if (querySnapshot.empty) {
-      html += `<p style="text-align:center; color:#666;">لا توجد بلاغات حالياً.</p>`;
-    } else {
-      querySnapshot.forEach((docSnap) => {
-        let rep = docSnap.data();
-        html += `
-          <div style="background:white; padding:15px; border-radius:10px; margin-bottom:10px; box-shadow:0 2px 6px rgba(0,0,0,0.05); border-right:4px solid #dc2626;">
-            <p><strong>المستخدم المُبلغ عنه ID:</strong> ${rep.reportedUserId}</p>
-            <p><strong>السبب:</strong> ${rep.reason}</p>
-          </div>
-        `;
-      });
-    }
-    content.innerHTML = html;
-  } catch (e) {
-    content.innerHTML = `<p style="text-align:center; color:red;">خطأ في جلب البلاغات.</p>`;
-  }
-};
-
+// دالة الحظر الشخصي (Block) من عندك - مع حماية كاملة ومطلقة للأدمن
 window.blockUserPersonal = async function(targetUserId) {
   if (!auth.currentUser) return;
-  showCustomConfirm("هل تريد حظر هذا المستخدم لمنع مضايقتك شخصياً؟", async (confirmed) => {
+
+  try {
+    let targetDoc = await getDoc(doc(db, "users", targetUserId));
+    if (targetDoc.exists()) {
+      let targetData = targetDoc.data();
+      if (targetData.email === ADMIN_EMAIL) {
+        showCustomAlert("عذراً، لا يمكنك حظر هذا الحساب (حساب الإدارة).");
+        return;
+      }
+    }
+  } catch (e) {}
+
+  showCustomConfirm("هل تريد حظر هذا المستخدم من عندك لمنع مضايقتك؟", async (confirmed) => {
     if (confirmed) {
       try {
         await updateDoc(doc(db, "users", auth.currentUser.uid), {
           blockedUsers: arrayUnion(targetUserId)
         });
         showCustomAlert("تم حظر المستخدم بنجاح.");
-        loadPosts();
+        window.showPage("home");
       } catch (e) {
         showCustomAlert("خطأ في عملية الحظر.");
       }
@@ -440,6 +384,99 @@ window.loadBlockedUsersList = async function() {
     `;
     container.appendChild(div);
   }
+};
+
+window.loadAdminReports = async function() {
+  const container = document.getElementById("reportsListContainer");
+  if (!container) return;
+
+  if (!checkIsAdmin()) {
+    container.innerHTML = "<p style='color:red;'>عذراً، هذه الصفحة مخصصة للأدمن فقط.</p>";
+    return;
+  }
+
+  try {
+    const q = query(collection(db, "reports"), orderBy("createdAt", "desc"));
+    const querySnapshot = await getDocs(q);
+
+    container.innerHTML = "";
+    if (querySnapshot.empty) {
+      container.innerHTML = "<p>لا توجد بلاغات حالياً.</p>";
+      return;
+    }
+
+    querySnapshot.forEach((docSnap) => {
+      let rep = docSnap.data();
+      let div = document.createElement("div");
+      div.style.cssText = "background:rgba(255,255,255,0.6); padding:12px; border-radius:10px; margin-bottom:10px; border-right:4px solid #e11d48;";
+      div.innerHTML = `
+        <p style="margin:0 0 6px 0;"><strong>المستخدم المُبلغ عنه ID:</strong> ${rep.reportedUserId}</p>
+        <p style="margin:0;"><strong>السبب:</strong> ${rep.reason}</p>
+      `;
+      container.appendChild(div);
+    });
+  } catch (err) {
+    container.innerHTML = "<p style='color:red;'>خطأ في تحميل البلاغات.</p>";
+  }
+};
+
+window.loadAdminUsers = async function() {
+  const container = document.getElementById("usersListContainer");
+  if (!container) return;
+
+  if (!checkIsAdmin()) {
+    container.innerHTML = "<p style='color:red;'>عذراً، هذه اللوحة مخصصة للأدمن فقط.</p>";
+    return;
+  }
+
+  try {
+    const querySnapshot = await getDocs(collection(db, "users"));
+    container.innerHTML = "";
+
+    if (querySnapshot.empty) {
+      container.innerHTML = "<p>لا توجد حسابات مسجلة.</p>";
+      return;
+    }
+
+    querySnapshot.forEach((docSnap) => {
+      let uData = docSnap.data();
+      let uId = docSnap.id;
+      let div = document.createElement("div");
+      div.style.cssText = "background:rgba(255,255,255,0.6); padding:10px; border-radius:10px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;";
+
+      let banStatus = uData.isBanned ? `<span style="color:red; font-weight:bold;">(محظور نهائياً)</span>` : `<span style="color:green;">(نشط)</span>`;
+      let banBtnText = uData.isBanned ? "إلغاء الحظر النهائي" : "حظر نهائي من التطبيق";
+      let banBtnColor = uData.isBanned ? "#10b981" : "#e11d48";
+
+      div.innerHTML = `
+        <div>
+          <strong>${uData.name || 'مبدئي'}</strong> ${banStatus}<br>
+          <small style="color:#666;">${uData.email || uData.phone || uId}</small>
+        </div>
+        <div style="display:flex; gap:6px;">
+          <button style="background:${banBtnColor}; color:white; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; font-size:12px;" onclick="toggleBanUser('${uId}', ${!uData.isBanned})">${banBtnText}</button>
+        </div>
+      `;
+      container.appendChild(div);
+    });
+  } catch (err) {
+    container.innerHTML = "<p style='color:red;'>خطأ في تحميل المستخدمين.</p>";
+  }
+};
+
+window.toggleBanUser = async function(userId, status) {
+  showCustomConfirm(status ? "هل تريد حقاً حظر هذا المستخدم نهائياً من التطبيق؟" : "هل تريد إلغاء الحظر النهائي عن هذا المستخدم؟", async (confirmed) => {
+    if (confirmed) {
+      try {
+        await updateDoc(doc(db, "users", userId), {
+          isBanned: status
+        });
+        window.loadAdminUsers();
+      } catch (e) {
+        showCustomAlert("خطأ في تنفيذ الإجراء.");
+      }
+    }
+  });
 };
 
 window.openPostDetails = async function(postId) {
@@ -546,65 +583,6 @@ window.editPostUser = async function(postId, authorId, currentTitle, currentText
   }
 };
 
-window.loadAdminUsers = async function() {
-  const container = document.getElementById("usersListContainer");
-  if (!container) return;
-
-  if (!checkIsAdmin()) {
-    container.innerHTML = "<p style='color:red;'>عذراً، هذه اللوحة مخصصة لمالك التطبيق فقط.</p>";
-    return;
-  }
-
-  try {
-    const querySnapshot = await getDocs(collection(db, "users"));
-    container.innerHTML = "";
-
-    if (querySnapshot.empty) {
-      container.innerHTML = "<p>لا توجد حسابات مسجلة.</p>";
-      return;
-    }
-
-    querySnapshot.forEach((docSnap) => {
-      let uData = docSnap.data();
-      let uId = docSnap.id;
-      let div = document.createElement("div");
-      div.style.cssText = "background:rgba(255,255,255,0.6); padding:10px; border-radius:10px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;";
-
-      let banStatus = uData.isBanned ? `<span style="color:red; font-weight:bold;">(محظور نهائياً)</span>` : `<span style="color:green;">(نشط)</span>`;
-      let banBtnText = uData.isBanned ? "إلغاء الحظر النهائي" : "حظر نهائي من التطبيق";
-      let banBtnColor = uData.isBanned ? "#10b981" : "#e11d48";
-
-      div.innerHTML = `
-        <div>
-          <strong>${uData.name || 'مبدئي'}</strong> ${banStatus}<br>
-          <small style="color:#666;">${uData.email || uData.phone || uId}</small>
-        </div>
-        <div style="display:flex; gap:6px;">
-          <button style="background:${banBtnColor}; color:white; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; font-size:12px;" onclick="toggleBanUser('${uId}', ${!uData.isBanned})">${banBtnText}</button>
-        </div>
-      `;
-      container.appendChild(div);
-    });
-  } catch (err) {
-    container.innerHTML = "<p style='color:red;'>خطأ في تحميل المستخدمين.</p>";
-  }
-};
-
-window.toggleBanUser = async function(userId, status) {
-  showCustomConfirm(status ? "هل تريد حقاً حظر هذا المستخدم نهائياً من التطبيق؟" : "هل تريد إلغاء الحظر النهائي عن هذا المستخدم؟", async (confirmed) => {
-    if (confirmed) {
-      try {
-        await updateDoc(doc(db, "users", userId), {
-          isBanned: status
-        });
-        window.loadAdminUsers();
-      } catch (e) {
-        showCustomAlert("خطأ في تنفيذ الإجراء.");
-      }
-    }
-  });
-};
-
 export async function loadPosts() {
   const container = document.getElementById("postsContainer");
   if (!container) return;
@@ -614,7 +592,6 @@ export async function loadPosts() {
   try {
     let profile = await getUserProfile();
     let blockedUsers = profile.blockedUsers || [];
-    let currentUserId = auth.currentUser ? auth.currentUser.uid : "";
 
     const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
     const querySnapshot = await getDocs(q);
