@@ -44,19 +44,79 @@ export function checkIsAdmin() {
   return auth.currentUser.email === ADMIN_EMAIL;
 }
 
+// دالة مخصصة بديلة لـ alert لتفادي ظهور localhost
+function showCustomAlert(message) {
+  let modal = document.getElementById("customModalOverlay");
+  if (!modal) {
+    modal = document.createElement("div");
+    modal.id = "customModalOverlay";
+    modal.style.cssText = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; justify-content:center; align-items:center; z-index:9999;";
+    modal.innerHTML = `
+      <div style="background:white; padding:20px; border-radius:12px; width:90%; max-width:350px; text-align:center; box-shadow:0 4px 12px rgba(0,0,0,0.15);">
+        <p id="customModalText" style="margin-bottom:20px; font-size:16px; color:#1f2937;"></p>
+        <button id="customModalOkBtn" style="background:#9333ea; color:white; border:none; padding:8px 20px; border-radius:8px; cursor:pointer; font-weight:bold;">موافق</button>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  }
+  document.getElementById("customModalTextinnerText" || "customModalText").innerText = message;
+  document.getElementById("customModalOkBtn").onclick = () => {
+    modal.style.display = "none";
+  };
+  modal.style.display = "flex";
+}
+
+// دالة مخصصة بديلة لـ confirm وتفادي ظهور localhost مع الحفاظ على النص العربي
+function showCustomConfirm(message, onConfirm) {
+  let modal = document.getElementById("customConfirmOverlay");
+  if (!modal) {
+    modal = document.createElement("div");
+    modal.id = "customConfirmOverlay";
+    modal.style.cssText = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; justify-content:center; align-items:center; z-index:9999;";
+    modal.innerHTML = `
+      <div style="background:white; padding:20px; border-radius:12px; width:90%; max-width:350px; text-align:center; box-shadow:0 4px 12px rgba(0,0,0,0.15);">
+        <p id="customConfirmText" style="margin-bottom:20px; font-size:16px; color:#1f2937;"></p>
+        <div style="display:flex; gap:10px; justify-content:center;">
+          <button id="customConfirmYes" style="background:#dc2626; color:white; border:none; padding:8px 20px; border-radius:8px; cursor:pointer; font-weight:bold;">موافق</button>
+          <button id="customConfirmNo" style="background:#e5e7eb; color:#374151; border:none; padding:8px 20px; border-radius:8px; cursor:pointer; font-weight:bold;">إلغاء</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  }
+  document.getElementById("customConfirmText").innerText = message;
+  modal.style.display = "flex";
+
+  document.getElementById("customConfirmYes").onclick = () => {
+    modal.style.display = "none";
+    onConfirm(true);
+  };
+  document.getElementById("customConfirmNo").onclick = () => {
+    modal.style.display = "none";
+    onConfirm(false);
+  };
+}
+
 onAuthStateChanged(auth, async (user) => {
+  const adminReportsBtn = document.getElementById("adminReportsBtn");
   if (user) {
     let userDoc = await getDoc(doc(db, "users", user.uid));
     if (userDoc.exists() && userDoc.data().isBanned) {
-      alert("عذراً، لقد تم حظرك نهائياً من التطبيق من قبل الإدارة.");
+      showCustomAlert("عذراً، لقد تم حظرك نهائياً من التطبيق من قبل الإدارة.");
       await signOut(auth);
       sessionStorage.removeItem("loggedIn");
       window.location.reload();
       return;
     }
     sessionStorage.setItem("loggedIn", "true");
+
+    // إظهار زر البلاغات في القائمة الجانبية حصراً للأدمن
+    if (adminReportsBtn) {
+      adminReportsBtn.style.display = (user.email === ADMIN_EMAIL) ? "block" : "none";
+    }
   } else {
     sessionStorage.removeItem("loggedIn");
+    if (adminReportsBtn) adminReportsBtn.style.display = "none";
   }
 });
 
@@ -76,14 +136,14 @@ export async function loginWithIdentifier(identifier, password) {
     let res = await signInWithEmailAndPassword(auth, emailToUse, password);
     let userDoc = await getDoc(doc(db, "users", res.user.uid));
     if (userDoc.exists() && userDoc.data().isBanned) {
-      alert("هذا الحساب محظور نهائياً.");
+      showCustomAlert("هذا الحساب محظور نهائياً.");
       await signOut(auth);
       return false;
     }
     sessionStorage.setItem("loggedIn", "true");
     return true;
   } catch (error) {
-    alert("خطأ: تأكد من صحة البريد/الهاتف أو كلمة المرور.");
+    showCustomAlert("خطأ: تأكد من صحة البريد/الهاتف أو كلمة المرور.");
     return false;
   }
 }
@@ -106,7 +166,7 @@ export async function registerWithIdentifier(identifier, password) {
     sessionStorage.setItem("loggedIn", "true");
     if (window.showPage) window.showPage("home");
   } catch (error) {
-    alert("خطأ في إنشاء الحساب: هذا الحساب مستخدم من قبل أو كلمة المرور ضعيفة.");
+    showCustomAlert("خطأ في إنشاء الحساب: هذا الحساب مستخدم من قبل أو كلمة المرور ضعيفة.");
   }
 }
 
@@ -120,15 +180,15 @@ export async function logout() {
 
 export async function resetPassword(identifier) {
   if (!identifier) {
-    alert("يرجى إدخال البريد الإلكتروني أو رقم الهاتف أولاً.");
+    showCustomAlert("يرجى إدخال البريد الإلكتروني أو رقم الهاتف أولاً.");
     return;
   }
   try {
     let emailToUse = formatIdentifier(identifier);
     await sendPasswordResetEmail(auth, emailToUse);
-    alert("تم إرسال رابط إعادة تعيين كلمة المرور بنجاح! 📧");
+    showCustomAlert("تم إرسال رابط إعادة تعيين كلمة المرور بنجاح! 📧");
   } catch (error) {
-    alert("حدث خطأ، تأكد من صحة المدخلات.");
+    showCustomAlert("حدث خطأ، تأكد من صحة المدخلات.");
   }
 }
 
@@ -229,22 +289,119 @@ export async function savePost(title, text, isSecret, secretPass, mediaFile) {
       createdAt: serverTimestamp()
     });
   } catch (error) {
-    alert("حدث خطأ أثناء النشر.");
+    showCustomAlert("حدث خطأ أثناء النشر.");
   }
 }
 
+// دالة الانتقال لملف المستخدم الآخر وإظهار خيارات الحظر والإبلاغ
+window.openUserProfileView = async function(targetUserId, targetUserName) {
+  let content = document.getElementById("appContent");
+  if (!content) return;
+
+  content.innerHTML = `<p style="text-align:center;">جاري تحميل الملف الشخصي...</p>`;
+
+  try {
+    let uDoc = await getDoc(doc(db, "users", targetUserId));
+    let uData = uDoc.exists() ? uDoc.data() : {};
+    let uAvatar = uData.avatar || "https://via.placeholder.com/80";
+
+    content.innerHTML = `
+      <button style="background:transparent; border:none; color:var(--lammio-primary); font-weight:bold; cursor:pointer; margin-bottom:10px;" onclick="showPage('home')">← العودة للرئيسية</button>
+      <div style="background:white; padding:20px; border-radius:12px; text-align:center; box-shadow:0 2px 8px rgba(0,0,0,0.05);">
+        <img src="${uAvatar}" style="width:80px; height:80px; border-radius:50%; object-fit:cover; margin-bottom:10px;">
+        <h2>${uData.name || targetUserName || "مستخدم"}</h2>
+        <div style="display:flex; justify-content:center; gap:10px; margin-top:20px;">
+          <button style="background:#f59e0b; color:white; border:none; padding:8px 16px; border-radius:8px; cursor:pointer; font-weight:bold;" onclick="reportUserAction('${targetUserId}')">🚨 إبلاغ</button>
+          <button style="background:#dc2626; color:white; border:none; padding:8px 16px; border-radius:8px; cursor:pointer; font-weight:bold;" onclick="blockUserPersonal('${targetUserId}')">🚫 حظر المستخدم</button>
+        </div>
+      </div>
+    `;
+  } catch (e) {
+    content.innerHTML = `<p style="text-align:center; color:red;">خطأ في تحميل الملف الشخصي.</p>`;
+  }
+};
+
+window.reportUserAction = function(targetUserId) {
+  let reason = prompt("اكتب سبب الإبلاغ:");
+  if (reason) {
+    showCustomConfirm("هل أنت متأكد من إرسال هذا البلاغ للأدمن وحظر المستخدم نهائياً؟", async (confirmed) => {
+      if (confirmed) {
+        try {
+          await addDoc(collection(db, "reports"), {
+            reportedUserId: targetUserId,
+            reporterId: auth.currentUser ? auth.currentUser.uid : "",
+            reason: reason,
+            createdAt: serverTimestamp()
+          });
+          // حظر المستخدم نهائياً عبر تحديث حقل isBanned للأدمن
+          await updateDoc(doc(db, "users", targetUserId), {
+            isBanned: true
+          });
+          showCustomAlert("تم إرسال البلاغ إلى الأدمن وحظر المستخدم من التطبيق بنجاح.");
+          window.showPage("home");
+        } catch (err) {
+          showCustomAlert("حدث خطأ أثناء إرسال البلاغ.");
+        }
+      }
+    });
+  }
+};
+
+// واجهة لوحة تحكم الأدمن لاستقبال البلاغات (تفتح من زر البلاغات في القائمة الجانبية)
+window.openAdminReportsPage = async function() {
+  if (!checkIsAdmin()) {
+    showCustomAlert("عذراً، هذه الصفحة مخصصة للأدمن فقط.");
+    return;
+  }
+
+  let content = document.getElementById("appContent");
+  if (!content) return;
+
+  content.innerHTML = `<p style="text-align:center;">جاري تحميل البلاغات...</p>`;
+
+  try {
+    const q = query(collection(db, "reports"), orderBy("createdAt", "desc"));
+    const querySnapshot = await getDocs(q);
+
+    let html = `
+      <button style="background:transparent; border:none; color:var(--lammio-primary); font-weight:bold; cursor:pointer; margin-bottom:10px;" onclick="showPage('home')">← العودة للرئيسية</button>
+      <h3 style="margin-bottom:15px; color:#dc2626;">🚨 لوحة تحكم الأدمن - البلاغات الواردة</h3>
+    `;
+
+    if (querySnapshot.empty) {
+      html += `<p style="text-align:center; color:#666;">لا توجد بلاغات حالياً.</p>`;
+    } else {
+      querySnapshot.forEach((docSnap) => {
+        let rep = docSnap.data();
+        html += `
+          <div style="background:white; padding:15px; border-radius:10px; margin-bottom:10px; box-shadow:0 2px 6px rgba(0,0,0,0.05); border-right:4px solid #dc2626;">
+            <p><strong>المستخدم المُبلغ عنه ID:</strong> ${rep.reportedUserId}</p>
+            <p><strong>السبب:</strong> ${rep.reason}</p>
+          </div>
+        `;
+      });
+    }
+    content.innerHTML = html;
+  } catch (e) {
+    content.innerHTML = `<p style="text-align:center; color:red;">خطأ في جلب البلاغات.</p>`;
+  }
+};
+
 window.blockUserPersonal = async function(targetUserId) {
   if (!auth.currentUser) return;
-  if (confirm("هل تريد حظر هذا المستخدم لمنع مضايقتك؟")) {
-    try {
-      await updateDoc(doc(db, "users", auth.currentUser.uid), {
-        blockedUsers: arrayUnion(targetUserId)
-      });
-      loadPosts();
-    } catch (e) {
-      alert("خطأ في عملية الحظر.");
+  showCustomConfirm("هل تريد حظر هذا المستخدم لمنع مضايقتك شخصياً؟", async (confirmed) => {
+    if (confirmed) {
+      try {
+        await updateDoc(doc(db, "users", auth.currentUser.uid), {
+          blockedUsers: arrayUnion(targetUserId)
+        });
+        showCustomAlert("تم حظر المستخدم بنجاح.");
+        loadPosts();
+      } catch (e) {
+        showCustomAlert("خطأ في عملية الحظر.");
+      }
     }
-  }
+  });
 };
 
 window.unblockUserPersonal = async function(targetUserId) {
@@ -255,7 +412,7 @@ window.unblockUserPersonal = async function(targetUserId) {
     });
     if (window.showPage) window.showPage("profile");
   } catch (e) {
-    alert("خطأ في إلغاء الحظر.");
+    showCustomAlert("خطأ في إلغاء الحظر.");
   }
 };
 
@@ -285,7 +442,6 @@ window.loadBlockedUsersList = async function() {
   }
 };
 
-// الدخول لتفاصيل المنشور (مثل النقر على المنشور لعرضه وحده مع خيارات التعديل والحذف إن كان المالك أو الأدمن)
 window.openPostDetails = async function(postId) {
   let content = document.getElementById("appContent");
   if (!content) return;
@@ -312,12 +468,11 @@ window.openPostDetails = async function(postId) {
       }
     }
 
-    // تظهر أزرار التعديل والحذف هنا حصراً داخل صفحة المنشور المفردة لصاحب المنشور أو الأدمن
     let managementButtonsHtml = "";
     if (isAdmin || (post.authorId && post.authorId === currentUserId)) {
       managementButtonsHtml = `
         <div style="display:flex; gap:8px; margin-top:15px; border-top:1px solid rgba(0,0,0,0.08); padding-top:12px;">
-          <button class="edit-btn" onclick="editPostUser('${postId}', '${post.authorId || ''}', '${post.title.replace(/'/g, "\\'")}', '${post.text.replace(/'/g, "\\'")}')">✏️ تعديل المنشور</button>
+          <button class="edit-btn" onclick="editPostUser('${postId}', '${post.authorId || ''}', '${post.title.replace(/'/g, "\\'")}', '${post.text.replace(/'/g, "\\\\'")}')">✏️ تعديل المنشور</button>
           <button class="danger-btn" onclick="deletePostUser('${postId}', '${post.authorId || ''}')">🗑️ حذف المنشور</button>
         </div>
       `;
@@ -327,7 +482,7 @@ window.openPostDetails = async function(postId) {
       <button style="background:transparent; border:none; color:var(--lammio-primary); font-weight:bold; cursor:pointer; margin-bottom:10px;" onclick="showPage('home')">← العودة للرئيسية</button>
       <div class="post">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-          <div style="display:flex; align-items:center; gap:8px;">
+          <div style="display:flex; align-items:center; gap:8px; cursor:pointer;" onclick="openUserProfileView('${post.authorId}', '${post.author}')">
             <img src="${post.authorAvatar || 'https://via.placeholder.com/30'}" style="width:30px; height:30px; border-radius:50%; object-fit:cover;">
             <strong>${post.author || "مستخدم"}</strong>
           </div>
@@ -348,16 +503,18 @@ window.deletePostUser = async function(postId, authorId) {
   let currentUserId = auth.currentUser ? auth.currentUser.uid : "";
 
   if (isAdmin || authorId === currentUserId) {
-    if (confirm("هل أنت متأكد من حذف هذا المنشور؟")) {
-      try {
-        await deleteDoc(doc(db, "posts", postId));
-        showPage("home");
-      } catch (e) {
-        alert("خطأ في الحذف.");
+    showCustomConfirm("هل أنت متأكد من حذف هذا المنشور؟", async (confirmed) => {
+      if (confirmed) {
+        try {
+          await deleteDoc(doc(db, "posts", postId));
+          showPage("home");
+        } catch (e) {
+          showCustomAlert("خطأ في الحذف.");
+        }
       }
-    }
+    });
   } else {
-    alert("ليس لديك الصلاحية لحذف هذا المنشور.");
+    showCustomAlert("ليس لديك الصلاحية لحذف هذا المنشور.");
   }
 };
 
@@ -371,17 +528,21 @@ window.editPostUser = async function(postId, authorId, currentTitle, currentText
     let newText = prompt("تعديل النص:", currentText);
     if (newText === null) return;
 
-    try {
-      await updateDoc(doc(db, "posts", postId), {
-        title: newTitle,
-        text: newText
-      });
-      openPostDetails(postId);
-    } catch (e) {
-      alert("خطأ في التعديل.");
-    }
+    showCustomConfirm("هل أنت متأكد من تعديل العنوان؟", async (confirmed) => {
+      if (confirmed) {
+        try {
+          await updateDoc(doc(db, "posts", postId), {
+            title: newTitle,
+            text: newText
+          });
+          openPostDetails(postId);
+        } catch (e) {
+          showCustomAlert("خطأ في التعديل.");
+        }
+      }
+    });
   } else {
-    alert("ليس لديك الصلاحية لتعديل هذا المنشور.");
+    showCustomAlert("ليس لديك الصلاحية لتعديل هذا المنشور.");
   }
 };
 
@@ -430,16 +591,18 @@ window.loadAdminUsers = async function() {
 };
 
 window.toggleBanUser = async function(userId, status) {
-  if (confirm(status ? "هل تريد حقاً حظر هذا المستخدم نهائياً من التطبيق؟" : "هل تريد إلغاء الحظر النهائي عن هذا المستخدم؟")) {
-    try {
-      await updateDoc(doc(db, "users", userId), {
-        isBanned: status
-      });
-      window.loadAdminUsers();
-    } catch (e) {
-      alert("خطأ في تنفيذ الإجراء.");
+  showCustomConfirm(status ? "هل تريد حقاً حظر هذا المستخدم نهائياً من التطبيق؟" : "هل تريد إلغاء الحظر النهائي عن هذا المستخدم؟", async (confirmed) => {
+    if (confirmed) {
+      try {
+        await updateDoc(doc(db, "users", userId), {
+          isBanned: status
+        });
+        window.loadAdminUsers();
+      } catch (e) {
+        showCustomAlert("خطأ في تنفيذ الإجراء.");
+      }
     }
-  }
+  });
 };
 
 export async function loadPosts() {
@@ -474,11 +637,9 @@ export async function loadPosts() {
       hasVisiblePosts = true;
       const card = document.createElement("div");
       card.className = "post";
-      // جعل النقر على المنشور يفتح تفاصيله (مثل فيسبوك)
       card.style.cursor = "pointer";
       card.onclick = (e) => {
-        // عدم تفعيل النقر لو ضغط على زر الحظر الجانبي
-        if(e.target.tagName === 'BUTTON') return;
+        if(e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
         openPostDetails(postId);
       };
 
@@ -493,21 +654,14 @@ export async function loadPosts() {
 
       let secretBadge = post.isSecret ? `<span style="background:#e11d48; color:white; padding:2px 8px; border-radius:6px; font-size:11px; margin-right:8px;">🔒 سرّي</span>` : "";
 
-      let blockOptionHtml = "";
-      if (post.authorId && post.authorId !== currentUserId) {
-        blockOptionHtml = `<button style="background:#f59e0b; color:white; border:none; padding:4px 8px; border-radius:6px; font-size:11px; cursor:pointer;" onclick="blockUserPersonal('${post.authorId}')">حظر المستخدم</button>`;
-      }
-
-      // الصفحة الرئيسية تعرض فقط: (اللايك، التعليق، المشاركة) وأزرار تفاعلية شبيهة بفيسبوك وخالية تماماً من زر التعديل أو الحذف العلني
       card.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-          <div style="display:flex; align-items:center; gap:8px;">
+          <div style="display:flex; align-items:center; gap:8px; cursor:pointer;" onclick="openUserProfileView('${post.authorId}', '${post.author}')">
             <img src="${post.authorAvatar || 'https://via.placeholder.com/30'}" style="width:30px; height:30px; border-radius:50%; object-fit:cover;">
             <strong>${post.author || "مستخدم"}</strong>
           </div>
           <div style="display:flex; align-items:center; gap:6px;">
             ${secretBadge}
-            ${blockOptionHtml}
           </div>
         </div>
         <h4 style="margin: 0 0 6px 0; color:var(--lammio-primary);">${post.title}</h4>
@@ -515,9 +669,9 @@ export async function loadPosts() {
         ${mediaHtml}
         
         <div style="display:flex; justify-content:space-around; border-top:1px solid rgba(0,0,0,0.06); padding-top:10px; margin-top:12px; color:#555; font-size:13px; font-weight:bold;">
-          <span>👍 أعجبني</span>
-          <span>💬 تعليق</span>
-          <span>↗️ مشاركة</span>
+          <button type="button" style="background:none; border:none; cursor:pointer; font-weight:bold; color:#555;" onclick="this.innerText = this.innerText.includes('👍') ? '❤️ أعجبني (1)' : '👍 أعجبني'">👍 أعجبني</button>
+          <button type="button" style="background:none; border:none; cursor:pointer; font-weight:bold; color:#555;" onclick="prompt('اكتب تعليقك:')">💬 تعليق</button>
+          <button type="button" style="background:none; border:none; cursor:pointer; font-weight:bold; color:#555;" onclick="navigator.clipboard.writeText(window.location.href); showCustomAlert('تم نسخ رابط المنشور بنجاح!');">↗️ مشاركة</button>
         </div>
       `;
       container.appendChild(card);

@@ -341,7 +341,7 @@
       checkAuthAndShow();
     }
 
-    async function showPage(page) {
+    async function showPage(page, userId = null) {
       if (sessionStorage.getItem("loggedIn") !== "true") return;
       let content = document.getElementById("appContent");
       if (!content) return;
@@ -357,39 +357,48 @@
         if (window.loadPosts) window.loadPosts();
       } 
       else if (page === "profile") {
-        let profileData = window.getUserProfile ? await window.getUserProfile() : {};
+        let profileData = window.getUserProfile ? await window.getUserProfile(userId) : {};
+        let isOtherUser = userId && userId !== profileData.currentUserId;
+
         content.innerHTML = `
           <div class="post">
-            <h3 style="color: var(--lammio-primary); margin-bottom:15px;">تعديل الملف الشخصي</h3>
+            <h3 style="color: var(--lammio-primary); margin-bottom:15px;">${isOtherUser ? 'الملف الشخصي' : 'تعديل الملف الشخصي'}</h3>
             
             <div style="text-align:center; margin-bottom:15px;">
               <img id="currentAvatar" src="${profileData.avatar || 'https://via.placeholder.com/80'}" style="width:80px; height:80px; border-radius:50%; object-fit:cover; border:2px solid var(--lammio-primary);">
             </div>
 
-            <label style="font-size:13px; font-weight:bold;">الصورة الشخصية:</label>
-            <input type="file" id="avatarInput" accept="image/*">
+            <div id="profileDetailsArea">
+              <label style="font-size:13px; font-weight:bold;">الاسم:</label>
+              <input type="text" id="profileName" value="${profileData.name || ''}" ${isOtherUser ? 'readonly' : ''} placeholder="اسمك الكامل">
 
-            <label style="font-size:13px; font-weight:bold;">الاسم:</label>
-            <input type="text" id="profileName" value="${profileData.name || ''}" placeholder="اسمك الكامل">
+              <label style="font-size:13px; font-weight:bold;">رقم الهاتف:</label>
+              <input type="text" id="profilePhone" value="${profileData.phone || ''}" ${isOtherUser ? 'readonly' : ''} placeholder="رقم الهاتف">
 
-            <label style="font-size:13px; font-weight:bold;">رقم الهاتف:</label>
-            <input type="text" id="profilePhone" value="${profileData.phone || ''}" placeholder="رقم الهاتف">
-
-            <label style="font-size:13px; font-weight:bold;">حالة رقم الهاتف:</label>
-            <select id="phoneVisibility">
-              <option value="public" ${profileData.phoneVisibility === 'public' ? 'selected' : ''}>مرئي للجميع</option>
-              <option value="private" ${profileData.phoneVisibility === 'private' ? 'selected' : ''}>مخفي</option>
-            </select>
-
-            <button class="mainButton" onclick="saveProfileChanges()">حفظ التعديلات</button>
+              ${!isOtherUser ? `
+                <label style="font-size:13px; font-weight:bold;">حالة رقم الهاتف:</label>
+                <select id="phoneVisibility">
+                  <option value="public" ${profileData.phoneVisibility === 'public' ? 'selected' : ''}>مرئي للجميع</option>
+                  <option value="private" ${profileData.phoneVisibility === 'private' ? 'selected' : ''}>مخفي</option>
+                </select>
+                <button class="mainButton" onclick="saveProfileChanges()">حفظ التعديلات</button>
+              ` : `
+                <div style="display: flex; gap: 10px; margin-top: 15px;">
+                  <button class="danger-btn" style="flex:1; padding: 12px;" onclick="blockUser('${userId}')">🚫 حظر المستخدم</button>
+                  <button class="secondaryButton" style="flex:1; margin-top:0;" onclick="reportUserModal('${userId}')">⚠️ إبلاغ</button>
+                </div>
+              `}
+            </div>
           </div>
 
-          <div class="post">
-            <h4 style="color:var(--lammio-primary); margin-bottom:10px;">🚫 قائمة المحظورين شخصياً</h4>
-            <div id="blockedUsersContainer">جاري التحميل...</div>
-          </div>
+          ${!isOtherUser ? `
+            <div class="post">
+              <h4 style="color:var(--lammio-primary); margin-bottom:10px;">🚫 قائمة المحظورين شخصياً</h4>
+              <div id="blockedUsersContainer">جاري التحميل...</div>
+            </div>
+          ` : ''}
         `;
-        if (window.loadBlockedUsersList) window.loadBlockedUsersList();
+        if (!isOtherUser && window.loadBlockedUsersList) window.loadBlockedUsersList();
       }
       else if (page === "adminPanel") {
         content.innerHTML = `
@@ -400,6 +409,16 @@
           </div>
         `;
         if (window.loadAdminUsers) window.loadAdminUsers();
+      }
+      else if (page === "adminReports") {
+        content.innerHTML = `
+          <div class="post">
+            <h3 style="color: var(--lammio-primary); margin-bottom:15px;">🚨 إدارة البلاغات</h3>
+            <p style="font-size:13px; color:#555;">جميع البلاغات المقدمة من المستخدمين:</p>
+            <div id="reportsListContainer">جاري تحميل البلاغات...</div>
+          </div>
+        `;
+        if (window.loadAdminReports) window.loadAdminReports();
       }
       else if (page === "post") {
         content.innerHTML = `
@@ -427,8 +446,9 @@
         let profileData = window.getUserProfile ? await window.getUserProfile() : {};
         let isAdmin = window.checkIsAdmin ? await window.checkIsAdmin() : false;
         
-        let adminButtonHtml = isAdmin ? `
+        let adminButtonsHtml = isAdmin ? `
           <div class="menu-card" style="background:#fef3c7; border-color:#f59e0b;" onclick="showPage('adminPanel')">🛡️ لوحة التحكم</div>
+          <div class="menu-card" style="background:#fee2e2; border-color:#ef4444;" onclick="showPage('adminReports')">🚨 البلاغات</div>
         ` : `
           <div class="menu-card" onclick="showPage('search')">🔍 البحث</div>
         `;
@@ -448,7 +468,7 @@
             <div class="menu-card" onclick="showPage('messages')">💬 الرسائل</div>
             <div class="menu-card" onclick="showPage('saved')">📌 المحفوظات</div>
             <div class="menu-card" onclick="showPage('secrets')">🔒 غرفة الأسرار</div>
-            ${adminButtonHtml}
+            ${adminButtonsHtml}
           </div>
 
           <button class="logout-btn" onclick="logoutApp()">🚪 تسجيل الخروج</button>
@@ -468,6 +488,26 @@
       if (window.updateProfile) {
         await window.updateProfile(name, phone, phoneVisibility, avatarFile);
         showPage("menu");
+      }
+    }
+
+    async function blockUser(userId) {
+      if (confirm("هل أنت متأكد من حظر هذا المستخدم؟")) {
+        if (window.handleBlockUser) {
+          await window.handleBlockUser(userId);
+          alert("تم حظر المستخدم بنجاح.");
+          showPage("home");
+        }
+      }
+    }
+
+    async function reportUserModal(userId) {
+      let reason = prompt("يرجى كتابة سبب الإبلاغ عن هذا المستخدم:");
+      if (reason && reason.trim() !== "") {
+        if (window.submitUserReport) {
+          await window.submitUserReport(userId, reason);
+          alert("تم إرسال البلاغ إلى الإدارة بنجاح.");
+        }
       }
     }
 
