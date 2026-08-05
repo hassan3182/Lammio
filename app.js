@@ -96,15 +96,17 @@ function showCustomConfirm(message, onConfirm) {
 }
 
 onAuthStateChanged(auth, async (user) => {
-  const adminReportsBtn = document.getElementById("adminReportsBtn");
   if (user) {
-    let userDoc = await getDoc(doc(db, "users", user.uid));
-    if (userDoc.exists() && userDoc.data().isBanned) {
-      showCustomAlert("عذراً، لقد تم حظرك نهائياً من التطبيق من قبل الإدارة.");
-      await signOut(auth);
-      sessionStorage.removeItem("loggedIn");
-      window.location.reload();
-      return;
+    // استثناء الأدمن تماماً من فحص الحظر لضمان دخوله دائماً
+    if (user.email !== ADMIN_EMAIL) {
+      let userDoc = await getDoc(doc(db, "users", user.uid));
+      if (userDoc.exists() && userDoc.data().isBanned) {
+        showCustomAlert("عذراً، لقد تم حظرك نهائياً من التطبيق من قبل الإدارة.");
+        await signOut(auth);
+        sessionStorage.removeItem("loggedIn");
+        window.location.reload();
+        return;
+      }
     }
     sessionStorage.setItem("loggedIn", "true");
   } else {
@@ -126,12 +128,17 @@ export async function loginWithIdentifier(identifier, password) {
   try {
     let emailToUse = formatIdentifier(identifier);
     let res = await signInWithEmailAndPassword(auth, emailToUse, password);
-    let userDoc = await getDoc(doc(db, "users", res.user.uid));
-    if (userDoc.exists() && userDoc.data().isBanned) {
-      showCustomAlert("هذا الحساب محظور نهائياً.");
-      await signOut(auth);
-      return false;
+    
+    // استثناء حساب الأدمن من فحص الحظر عند تسجيل الدخول
+    if (res.user.email !== ADMIN_EMAIL) {
+      let userDoc = await getDoc(doc(db, "users", res.user.uid));
+      if (userDoc.exists() && userDoc.data().isBanned) {
+        showCustomAlert("هذا الحساب محظور نهائياً.");
+        await signOut(auth);
+        return false;
+      }
     }
+
     sessionStorage.setItem("loggedIn", "true");
     return true;
   } catch (error) {
@@ -288,14 +295,12 @@ export async function savePost(title, text, isSecret, secretPass, mediaFile) {
   }
 }
 
-// عرض الملف الشخصي لمستخدم آخر مع زر الحظر والإبلاغ المنفصلين
 window.openUserProfileView = function(targetUserId, targetUserName) {
   if (window.showPage) {
     window.showPage("profile", targetUserId);
   }
 };
 
-// دالة الإبلاغ فقط (ترسل شكوى للأدمن دون حظر مباشر)
 window.reportUserAction = function(targetUserId) {
   let reason = prompt("يرجى كتابة سبب الإبلاغ عن هذا المستخدم:");
   if (reason && reason.trim() !== "") {
@@ -318,7 +323,6 @@ window.reportUserAction = function(targetUserId) {
   }
 };
 
-// دالة الحظر الشخصي (Block) من عندك - مع حماية كاملة ومطلقة للأدمن
 window.blockUserPersonal = async function(targetUserId) {
   if (!auth.currentUser) return;
 
@@ -441,6 +445,10 @@ window.loadAdminUsers = async function() {
     querySnapshot.forEach((docSnap) => {
       let uData = docSnap.data();
       let uId = docSnap.id;
+      
+      // حماية إضافية تمنع ظهور زر الحظر للأدمن في اللوحة أو التعامل معه
+      if (uData.email === ADMIN_EMAIL) return;
+
       let div = document.createElement("div");
       div.style.cssText = "background:rgba(255,255,255,0.6); padding:10px; border-radius:10px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;";
 
