@@ -97,39 +97,35 @@ function showCustomConfirm(message, onConfirm) {
 
 onAuthStateChanged(auth, async (user) => {
   if (user) {
-    // استثناء الأدمن تماماً من فحص الحظر لضمان دخوله دائماً
     if (user.email !== ADMIN_EMAIL) {
-      let userDoc = await getDoc(doc(db, "users", user.uid));
-      if (userDoc.exists() && userDoc.data().isBanned) {
-        showCustomAlert("عذراً، لقد تم حظرك نهائياً من التطبيق من قبل الإدارة.");
-        await signOut(auth);
-        sessionStorage.removeItem("loggedIn");
-        window.location.reload();
-        return;
-      }
+      try {
+        let userDoc = await getDoc(doc(db, "users", user.uid));
+        if (userDoc.exists() && userDoc.data().isBanned) {
+          showCustomAlert("عذراً، لقد تم حظرك نهائياً من التطبيق من قبل الإدارة.");
+          await signOut(auth);
+          sessionStorage.removeItem("loggedIn");
+          return;
+        }
+      } catch (e) {}
     }
     sessionStorage.setItem("loggedIn", "true");
-  } else {
-    sessionStorage.removeItem("loggedIn");
   }
 });
 
 function formatIdentifier(identifier) {
   identifier = identifier.trim();
   if (identifier.includes("@")) {
-    return identifier;
-  } else {
-    let cleanPhone = identifier.replace(/[^0-9]/g, "");
-    return `${cleanPhone}@lammio.phone`;
+    return { authEmail: identifier.toLowerCase(), isPhone: false, rawValue: identifier };
   }
+  let cleanPhone = identifier.replace(/[^0-9]/g, "");
+  return { authEmail: `phone${cleanPhone}@lammio.app`, isPhone: true, rawValue: identifier };
 }
 
 export async function loginWithIdentifier(identifier, password) {
   try {
-    let emailToUse = formatIdentifier(identifier);
-    let res = await signInWithEmailAndPassword(auth, emailToUse, password);
+    let formatted = formatIdentifier(identifier);
+    let res = await signInWithEmailAndPassword(auth, formatted.authEmail, password);
     
-    // استثناء حساب الأدمن من فحص الحظر عند تسجيل الدخول
     if (res.user.email !== ADMIN_EMAIL) {
       let userDoc = await getDoc(doc(db, "users", res.user.uid));
       if (userDoc.exists() && userDoc.data().isBanned) {
@@ -142,30 +138,38 @@ export async function loginWithIdentifier(identifier, password) {
     sessionStorage.setItem("loggedIn", "true");
     return true;
   } catch (error) {
-    showCustomAlert("خطأ: تأكد من صحة البريد/الهاتف أو كلمة المرور.");
+    console.error("Login error:", error);
+    showCustomAlert("خطأ في تسجيل الدخول: تأكد من صحة البريد أو رقم الهاتف وكلمة المرور.");
     return false;
   }
 }
 
-export async function registerWithIdentifier(identifier, password) {
+export async function registerWithFacebookStyle(firstName, lastName, birthDate, gender, identifier, password) {
   try {
-    let emailToUse = formatIdentifier(identifier);
-    let res = await createUserWithEmailAndPassword(auth, emailToUse, password);
+    let formatted = formatIdentifier(identifier);
+    let res = await createUserWithEmailAndPassword(auth, formatted.authEmail, password);
     
-    let isPhone = !identifier.includes("@");
+    let fullName = `${firstName.trim()} ${lastName.trim()}`;
+
     await setDoc(doc(db, "users", res.user.uid), {
-      email: isPhone ? "" : identifier,
-      phone: isPhone ? identifier : "",
-      name: "مستخدم Lammio",
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      name: fullName,
+      birthDate: birthDate,
+      gender: gender,
+      email: formatted.isPhone ? "" : formatted.rawValue,
+      phone: formatted.isPhone ? formatted.rawValue : "",
       phoneVisibility: "private",
       avatar: "",
       isBanned: false,
       blockedUsers: []
     });
+    
     sessionStorage.setItem("loggedIn", "true");
     if (window.showPage) window.showPage("home");
   } catch (error) {
-    showCustomAlert("خطأ في إنشاء الحساب: هذا الحساب مستخدم من قبل أو كلمة المرور ضعيفة.");
+    console.error("Register error:", error);
+    showCustomAlert("خطأ في إنشاء الحساب: تأكد من صحة البيانات أو أن الحساب مسجل مسبقاً.");
   }
 }
 
@@ -173,7 +177,7 @@ export async function logout() {
   try {
     await signOut(auth);
     sessionStorage.removeItem("loggedIn");
-    window.location.reload();
+    if (window.showPage) window.showPage("login");
   } catch (error) {}
 }
 
@@ -183,8 +187,8 @@ export async function resetPassword(identifier) {
     return;
   }
   try {
-    let emailToUse = formatIdentifier(identifier);
-    await sendPasswordResetEmail(auth, emailToUse);
+    let formatted = formatIdentifier(identifier);
+    await sendPasswordResetEmail(auth, formatted.authEmail);
     showCustomAlert("تم إرسال رابط إعادة تعيين كلمة المرور بنجاح! 📧");
   } catch (error) {
     showCustomAlert("حدث خطأ، تأكد من صحة المدخلات.");
@@ -288,8 +292,12 @@ export async function savePost(title, text, isSecret, secretPass, mediaFile) {
       secretPass: secretPass || "",
       mediaUrl: mediaBase64,
       mediaType: mediaType,
+      likes: [],
+      comments: [],
       createdAt: serverTimestamp()
     });
+    showCustomAlert("تم النشر بنجاح!");
+    window.showPage("home");
   } catch (error) {
     showCustomAlert("حدث خطأ أثناء النشر.");
   }
@@ -446,7 +454,6 @@ window.loadAdminUsers = async function() {
       let uData = docSnap.data();
       let uId = docSnap.id;
       
-      // حماية إضافية تمنع ظهور زر الحظر للأدمن في اللوحة أو التعامل معه
       if (uData.email === ADMIN_EMAIL) return;
 
       let div = document.createElement("div");
@@ -487,11 +494,83 @@ window.toggleBanUser = async function(userId, status) {
   });
 };
 
+// تعديل الليكات بحيث تزيد تدريجياً حسب عدد المستخدمين الذين ضغطوا عليها
+window.toggleLike = async function(postId, btnElement) {
+  if (!auth.currentUser) {
+    showCustomAlert("يجب تسجيل الدخول للإعجاب بالمنشور.");
+    return;
+  }
+  let userId = auth.currentUser.uid;
+  let postRef = doc(db, "posts", postId);
+
+  try {
+    let postDoc = await getDoc(postRef);
+    if (!postDoc.exists()) return;
+    let postData = postDoc.data();
+    let likes = postData.likes || [];
+    let hasLiked = likes.includes(userId);
+
+    let newLikesCount;
+    if (hasLiked) {
+      await updateDoc(postRef, {
+        likes: arrayRemove(userId)
+      });
+      newLikesCount = likes.length - 1;
+      btnElement.innerHTML = `👍 أعجبني ${newLikesCount > 0 ? '(' + newLikesCount + ')' : ''}`;
+      btnElement.style.color = "#555";
+    } else {
+      await updateDoc(postRef, {
+        likes: arrayUnion(userId)
+      });
+      newLikesCount = likes.length + 1;
+      btnElement.innerHTML = `❤️ أعجبني (${newLikesCount})`;
+      btnElement.style.color = "#e11d48";
+    }
+  } catch (e) {
+    showCustomAlert("حدث خطأ أثناء تسجيل الإعجاب.");
+  }
+};
+
+// إضافة وظيفة إضافة وعرض التعليقات بوضوح داخل صفحة تفاصيل المنشور
+window.addCommentToPost = async function(postId) {
+  let commentInput = document.getElementById(`commentInput_${postId}`);
+  if (!commentInput) return;
+  let commentText = commentInput.value.trim();
+
+  if (!commentText) {
+    showCustomAlert("يرجى كتابة نص التعليق أولاً.");
+    return;
+  }
+
+  let profile = await getUserProfile();
+  let userName = profile.name || "مستخدم";
+  let userAvatar = profile.avatar || "https://via.placeholder.com/30";
+
+  let newComment = {
+    userId: auth.currentUser ? auth.currentUser.uid : "",
+    author: userName,
+    avatar: userAvatar,
+    text: commentText,
+    createdAt: new Date().toISOString()
+  };
+
+  try {
+    let postRef = doc(db, "posts", postId);
+    await updateDoc(postRef, {
+      comments: arrayUnion(newComment)
+    });
+    commentInput.value = "";
+    openPostDetails(postId); // تحديث صفحة المنشور لإظهار التعليق الجديد فوراً
+  } catch (e) {
+    showCustomAlert("حدث خطأ أثناء إضافة التعليق.");
+  }
+};
+
 window.openPostDetails = async function(postId) {
   let content = document.getElementById("appContent");
   if (!content) return;
 
-  content.innerHTML = `<p style="text-align:center;">جاري تحميل المنشور...</p>`;
+  content.innerHTML = `<p style="text-align:center;">جاري تحميل المنشور والتعليقات...</p>`;
 
   try {
     let postDoc = await getDoc(doc(db, "posts", postId));
@@ -523,6 +602,24 @@ window.openPostDetails = async function(postId) {
       `;
     }
 
+    let commentsList = post.comments || [];
+    let commentsHtml = "";
+    if (commentsList.length === 0) {
+      commentsHtml = `<p style="color:#666; font-size:13px; text-align:center; margin:10px 0;">لا توجد تعليقات حتى الآن. كن أول المعلقين!</p>`;
+    } else {
+      commentsList.forEach(c => {
+        commentsHtml += `
+          <div style="background:rgba(255,255,255,0.7); padding:8px 12px; border-radius:8px; margin-bottom:8px; font-size:13px;">
+            <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+              <img src="${c.avatar || 'https://via.placeholder.com/24'}" style="width:24px; height:24px; border-radius:50%; object-fit:cover;">
+              <strong>${c.author}</strong>
+            </div>
+            <p style="margin:0; padding-right:30px; color:#333;">${c.text}</p>
+          </div>
+        `;
+      });
+    }
+
     content.innerHTML = `
       <button style="background:transparent; border:none; color:var(--lammio-primary); font-weight:bold; cursor:pointer; margin-bottom:10px;" onclick="showPage('home')">← العودة للرئيسية</button>
       <div class="post">
@@ -536,6 +633,15 @@ window.openPostDetails = async function(postId) {
         <p style="margin: 0; line-height:1.6;">${post.text}</p>
         ${mediaHtml}
         ${managementButtonsHtml}
+
+        <div style="margin-top:20px; border-top:1px solid rgba(0,0,0,0.1); padding-top:15px;">
+          <h4 style="margin:0 0 10px 0; font-size:15px; color:var(--lammio-primary);">التعليقات (${commentsList.length})</h4>
+          <div style="margin-bottom:12px; display:flex; gap:6px;">
+            <input type="text" id="commentInput_${postId}" placeholder="اكتب تعليقاً..." style="flex:1; padding:8px 12px; border:1px solid #d1d5db; border-radius:8px; font-size:13px;">
+            <button type="button" style="background:var(--lammio-primary); color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer; font-weight:bold;" onclick="addCommentToPost('${postId}')">إرسال</button>
+          </div>
+          <div>${commentsHtml}</div>
+        </div>
       </div>
     `;
   } catch (e) {
@@ -624,7 +730,7 @@ export async function loadPosts() {
       card.className = "post";
       card.style.cursor = "pointer";
       card.onclick = (e) => {
-        if(e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
+        if(e.target.tagName === 'BUTTON' || e.target.closest('button') || e.target.tagName === 'INPUT') return;
         openPostDetails(postId);
       };
 
@@ -638,6 +744,13 @@ export async function loadPosts() {
       }
 
       let secretBadge = post.isSecret ? `<span style="background:#e11d48; color:white; padding:2px 8px; border-radius:6px; font-size:11px; margin-right:8px;">🔒 سرّي</span>` : "";
+
+      let likesArr = post.likes || [];
+      let currentUserId = auth.currentUser ? auth.currentUser.uid : "";
+      let isLikedByMe = likesArr.includes(currentUserId);
+      let likeBtnText = isLikedByMe ? `❤️ أعجبني (${likesArr.length})` : `👍 أعجبني ${likesArr.length > 0 ? '(' + likesArr.length + ')' : ''}`;
+      let likeBtnColor = isLikedByMe ? "#e11d48" : "#555";
+      let commentsCount = (post.comments || []).length;
 
       card.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
@@ -654,8 +767,8 @@ export async function loadPosts() {
         ${mediaHtml}
         
         <div style="display:flex; justify-content:space-around; border-top:1px solid rgba(0,0,0,0.06); padding-top:10px; margin-top:12px; color:#555; font-size:13px; font-weight:bold;">
-          <button type="button" style="background:none; border:none; cursor:pointer; font-weight:bold; color:#555;" onclick="this.innerText = this.innerText.includes('👍') ? '❤️ أعجبني (1)' : '👍 أعجبني'">👍 أعجبني</button>
-          <button type="button" style="background:none; border:none; cursor:pointer; font-weight:bold; color:#555;" onclick="prompt('اكتب تعليقك:')">💬 تعليق</button>
+          <button type="button" style="background:none; border:none; cursor:pointer; font-weight:bold; color:${likeBtnColor};" onclick="toggleLike('${postId}', this)">${likeBtnText}</button>
+          <button type="button" style="background:none; border:none; cursor:pointer; font-weight:bold; color:#555;" onclick="openPostDetails('${postId}')">💬 تعليق (${commentsCount})</button>
           <button type="button" style="background:none; border:none; cursor:pointer; font-weight:bold; color:#555;" onclick="navigator.clipboard.writeText(window.location.href); showCustomAlert('تم نسخ رابط المنشور بنجاح!');">↗️ مشاركة</button>
         </div>
       `;
@@ -670,8 +783,260 @@ export async function loadPosts() {
   }
 }
 
+window.showPage = async function(page, userId = null) {
+  if (page !== "login" && page !== "register" && sessionStorage.getItem("loggedIn") !== "true") {
+    window.showPage("login");
+    return;
+  }
+
+  let content = document.getElementById("appContent");
+  if (!content) return;
+
+  if (page === "login") {
+    content.innerHTML = `
+      <div class="post" style="max-width: 400px; margin: 40px auto;">
+        <h3 style="text-align: center; color: var(--lammio-primary); margin-bottom: 20px;">تسجيل الدخول إلى Lammio</h3>
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 5px; font-weight: bold; font-size: 13px;">البريد الإلكتروني أو رقم الهاتف الحقيقي:</label>
+          <input type="text" id="loginIdentifier" placeholder="مثال: 01012345678 أو email@domain.com">
+        </div>
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; margin-bottom: 5px; font-weight: bold; font-size: 13px;">كلمة المرور:</label>
+          <input type="password" id="loginPassword" placeholder="••••••••">
+        </div>
+        <button type="button" class="mainButton" onclick="handleLoginSubmit(event)">تسجيل الدخول</button>
+        <p style="text-align: center; margin-top: 15px; font-size: 13px;">
+          ليس لديك حساب؟ <a href="#" onclick="showPage('register'); return false;" style="color: var(--lammio-primary); font-weight: bold;">إنشاء حساب جديد</a>
+        </p>
+      </div>
+    `;
+  }
+  else if (page === "register") {
+    content.innerHTML = `
+      <div class="post" style="max-width: 400px; margin: 40px auto;">
+        <h3 style="text-align: center; color: var(--lammio-primary); margin-bottom: 10px;">إنشاء حساب جديد</h3>
+        <p style="text-align: center; color: #666; font-size: 13px; margin-bottom: 20px;">سريع وسهل.</p>
+        
+        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+          <input type="text" id="regFirstName" placeholder="الاسم الأول" style="flex:1;">
+          <input type="text" id="regLastName" placeholder="اسم العائلة" style="flex:1;">
+        </div>
+
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 5px; font-weight: bold; font-size: 12px; color: #555;">تاريخ الميلاد:</label>
+          <input type="date" id="regBirthDate" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px;">
+        </div>
+
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 5px; font-weight: bold; font-size: 12px; color: #555;">الجنس:</label>
+          <select id="regGender" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px;">
+            <option value="male">ذكر</option>
+            <option value="female">أنثى</option>
+          </select>
+        </div>
+
+        <div style="margin-bottom: 15px;">
+          <input type="text" id="regIdentifier" placeholder="رقم الهاتف الحقيقي أو البريد الإلكتروني">
+        </div>
+
+        <div style="margin-bottom: 20px;">
+          <input type="password" id="regPassword" placeholder="كلمة مرور جديدة">
+        </div>
+
+        <button type="button" class="mainButton" style="background:#10b981;" onclick="handleRegisterSubmit(event)">إنشاء الحساب</button>
+        
+        <p style="text-align: center; margin-top: 15px; font-size: 13px;">
+          لديك حساب بالفعل؟ <a href="#" onclick="showPage('login'); return false;" style="color: var(--lammio-primary); font-weight: bold;">تسجيل الدخول</a>
+        </p>
+      </div>
+    `;
+  }
+  else if (page === "home") {
+    content.innerHTML = `
+      <div style="background: rgba(255, 255, 255, 0.5); backdrop-filter: blur(8px); padding: 10px; border-radius: 14px; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--lammio-glass-border);">
+        <div style="width:36px; height:36px; background:#ddd; border-radius:50%;"></div>
+        <div onclick="showPage('post')" style="flex:1; background:rgba(255,255,255,0.7); padding:8px 12px; border-radius:20px; color:#666; cursor:pointer; font-size:14px;">بم تفكر في Lammio؟</div>
+      </div>
+      <div id="postsContainer">جاري تحميل المنشورات...</div>
+    `;
+    if (window.loadPosts) window.loadPosts();
+  } 
+  else if (page === "profile") {
+    let profileData = window.getUserProfile ? await window.getUserProfile(userId) : {};
+    let isOtherUser = userId && userId !== profileData.currentUserId;
+
+    content.innerHTML = `
+      <div class="post">
+        <h3 style="color: var(--lammio-primary); margin-bottom:15px;">${isOtherUser ? 'الملف الشخصي' : 'تعديل الملف الشخصي'}</h3>
+        
+        <div style="text-align:center; margin-bottom:15px;">
+          <img id="currentAvatar" src="${profileData.avatar || 'https://via.placeholder.com/80'}" style="width:80px; height:80px; border-radius:50%; object-fit:cover; border:2px solid var(--lammio-primary);">
+        </div>
+
+        <div id="profileDetailsArea">
+          <label style="font-size:13px; font-weight:bold;">الاسم:</label>
+          <input type="text" id="profileName" value="${profileData.name || ''}" ${isOtherUser ? 'readonly' : ''} placeholder="اسمك الكامل">
+
+          <label style="font-size:13px; font-weight:bold;">رقم الهاتف أو الإيميل الحقيقي:</label>
+          <input type="text" id="profilePhone" value="${profileData.phone || profileData.email || ''}" ${isOtherUser ? 'readonly' : ''} placeholder="رقم الهاتف">
+
+          ${!isOtherUser ? `
+            <label style="font-size:13px; font-weight:bold;">حالة رقم الهاتف:</label>
+            <select id="phoneVisibility">
+              <option value="public" ${profileData.phoneVisibility === 'public' ? 'selected' : ''}>مرئي للجميع</option>
+              <option value="private" ${profileData.phoneVisibility === 'private' ? 'selected' : ''}>مخفي</option>
+            </select>
+            <button class="mainButton" onclick="saveProfileChanges()">حفظ التعديلات</button>
+          ` : `
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+              <button class="danger-btn" style="flex:1; padding: 12px;" onclick="blockUserPersonal('${userId}')">🚫 حظر</button>
+              <button class="secondaryButton" style="flex:1; margin-top:0;" onclick="reportUserAction('${userId}')">⚠️ إبلاغ</button>
+            </div>
+          `}
+        </div>
+      </div>
+
+      ${!isOtherUser ? `
+        <div class="post">
+          <h4 style="color:var(--lammio-primary); margin-bottom:10px;">🚫 قائمة المحظورين شخصياً</h4>
+          <div id="blockedUsersContainer">جاري التحميل...</div>
+        </div>
+      ` : ''}
+    `;
+    if (!isOtherUser && window.loadBlockedUsersList) window.loadBlockedUsersList();
+  }
+  else if (page === "adminPanel") {
+    content.innerHTML = `
+      <div class="post">
+        <h3 style="color: var(--lammio-primary); margin-bottom:15px;">🛡️ لوحة تحكم المالك (Admin)</h3>
+        <p style="font-size:13px; color:#555;">إدارة مستخدمي التطبيق وحظرهم نهائياً:</p>
+        <div id="usersListContainer">جاري تحميل المستخدمين...</div>
+      </div>
+    `;
+    if (window.loadAdminUsers) window.loadAdminUsers();
+  }
+  else if (page === "adminReports") {
+    content.innerHTML = `
+      <div class="post">
+        <h3 style="color: var(--lammio-primary); margin-bottom:15px;">🚨 إدارة البلاغات</h3>
+        <p style="font-size:13px; color:#555;">جميع البلاغات المقدمة من المستخدمين:</p>
+        <div id="reportsListContainer">جاري تحميل البلاغات...</div>
+      </div>
+    `;
+    if (window.loadAdminReports) window.loadAdminReports();
+  }
+  else if (page === "post") {
+    content.innerHTML = `
+      <div class="post">
+        <h3 style="margin-bottom:12px; color: var(--lammio-primary);">إنشاء منشور جديد</h3>
+        <input id="title" placeholder="عنوان المنشور">
+        <textarea id="postText" rows="4" placeholder="بم تفكر؟"></textarea>
+        
+        <div style="background:rgba(255, 255, 255, 0.4); padding:10px; border-radius:10px; margin:10px 0;">
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+            <input type="checkbox" id="isSecret" style="width:auto; margin:0;" onchange="document.getElementById('secretPassInput').style.display = this.checked ? 'block' : 'none'">
+            <strong>🔒 منشور في غرفة الأسرار</strong>
+          </label>
+          <input type="password" id="secretPassInput" placeholder="كلمة السر للمنشور" style="display:none; margin-top:8px;">
+        </div>
+
+        <label style="display:block; margin:8px 0; font-size:13px; font-weight:bold;">اختر صورة أو فيديو:</label>
+        <input type="file" id="mediaInput" accept="image/*,video/*">
+
+        <button class="mainButton" id="publishBtn" onclick="handlePublishSubmit(event)">نشر في Lammio</button>
+      </div>
+    `;
+  } 
+  else if (page === "menu") {
+    let profileData = window.getUserProfile ? await window.getUserProfile() : {};
+    let isAdmin = window.checkIsAdmin ? await window.checkIsAdmin() : false;
+    
+    let adminButtonsHtml = isAdmin ? `
+      <div class="menu-card" style="background:#fef3c7; border-color:#f59e0b;" onclick="showPage('adminPanel')">🛡️ لوحة التحكم</div>
+      <div class="menu-card" style="background:#fee2e2; border-color:#ef4444;" onclick="showPage('adminReports')">🚨 البلاغات</div>
+    ` : `
+      <div class="menu-card" onclick="showPage('search')">🔍 البحث</div>
+    `;
+
+    content.innerHTML = `
+      <div class="post" style="display:flex; align-items:center; gap:12px; cursor:pointer;" onclick="showPage('profile')">
+        <img src="${profileData.avatar || 'https://via.placeholder.com/50'}" style="width:50px; height:50px; border-radius:50%; object-fit:cover;">
+        <div>
+          <h4 style="margin:0;">${profileData.name || 'مستخدم Lammio'}</h4>
+          <span style="font-size:13px; color:#666;">اضغط لتعديل الملف الشخصي</span>
+        </div>
+      </div>
+
+      <div class="menu-grid">
+        <div class="menu-card" onclick="showPage('profile')">👤 الملف الشخصي</div>
+        <div class="menu-card" onclick="showPage('friends')">👥 الأصدقاء</div>
+        <div class="menu-card" onclick="showPage('messages')">💬 الرسائل</div>
+        <div class="menu-card" onclick="showPage('saved')">📌 المحفوظات</div>
+        <div class="menu-card" onclick="showPage('secrets')">🔒 غرفة الأسرار</div>
+        ${adminButtonsHtml}
+      </div>
+
+      <button class="logout-btn" onclick="logoutApp()">🚪 تسجيل الخروج</button>
+    `;
+  }
+  else {
+    content.innerHTML = `<div class="post"><h3 style="color: var(--lammio-primary);">${page}</h3><p>قيد التطوير...</p></div>`;
+  }
+};
+
+window.handleLoginSubmit = async function(event) {
+  if (event) event.preventDefault();
+  let identifier = document.getElementById("loginIdentifier").value;
+  let password = document.getElementById("loginPassword").value;
+  if (!identifier || !password) {
+    showCustomAlert("يرجى إدخال البريد أو رقم الهاتف وكلمة المرور.");
+    return;
+  }
+  let success = await loginWithIdentifier(identifier, password);
+  if (success) {
+    window.showPage("home");
+  }
+};
+
+window.handleRegisterSubmit = async function(event) {
+  if (event) event.preventDefault();
+  let firstName = document.getElementById("regFirstName").value;
+  let lastName = document.getElementById("regLastName").value;
+  let birthDate = document.getElementById("regBirthDate").value;
+  let gender = document.getElementById("regGender").value;
+  let identifier = document.getElementById("regIdentifier").value;
+  let password = document.getElementById("regPassword").value;
+
+  if (!firstName || !lastName || !identifier || !password) {
+    showCustomAlert("يرجى ملء جميع الحقول المطلوبة.");
+    return;
+  }
+
+  await registerWithFacebookStyle(firstName, lastName, birthDate, gender, identifier, password);
+};
+
+window.handlePublishSubmit = async function(event) {
+  if (event) event.preventDefault();
+  let title = document.getElementById("title").value;
+  let text = document.getElementById("postText").value;
+  let isSecret = document.getElementById("isSecret").checked;
+  let secretPass = document.getElementById("secretPassInput").value;
+  let mediaFile = document.getElementById("mediaInput").files[0];
+
+  if (!title || !text) {
+    showCustomAlert("يرجى كتابة العنوان والنص للمنشور.");
+    return;
+  }
+
+  await savePost(title, text, isSecret, secretPass, mediaFile);
+};
+
+window.logoutApp = function() {
+  logout();
+};
+
 window.loginWithIdentifier = loginWithIdentifier;
-window.registerWithIdentifier = registerWithIdentifier;
+window.registerWithFacebookStyle = registerWithFacebookStyle;
 window.logout = logout;
 window.resetPassword = resetPassword;
 window.savePost = savePost;
